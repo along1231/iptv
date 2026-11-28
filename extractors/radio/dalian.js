@@ -1,14 +1,14 @@
 import { requestMediaToken } from '../dalian/api.js'
 import { API_BASE, APP_VERSION, UA, buildTicket } from '../dalian/auth.js'
 
-export async function dalianRadioCatalog() {
-  const { token } = await requestMediaToken()
+export async function dalianRadioCatalog(fetchImpl = fetch) {
+  const { token } = await requestMediaToken({ fetchImpl })
   const url = new URL('tv/channels', API_BASE)
   url.search = new URLSearchParams({
     siteID: '1', type: '2', appID: '1', siteId: '1', curVersions: '2',
     appVersion: APP_VERSION, latitude: '0', longitude: '0', location: '', deviceId: 'iptv-radio',
   })
-  const response = await fetch(url, {
+  const response = await fetchImpl(url, {
     headers: { Accept: 'application/json', 'User-Agent': UA, source: 'APP', ticket: buildTicket(token) },
     redirect: 'error', signal: AbortSignal.timeout(12000),
   })

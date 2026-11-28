@@ -16,6 +16,13 @@ import { dataPath } from './paths.js'
 
 const SOURCES_PATH = dataPath('external-sources.json')
 
+// 与内置模块共用「香港广播」一类地区分组。缺地区的频道继续走自动分组。
+export function radioRegionGroup(region) {
+  const name = String(region || '').trim()
+  if (!name || /["\r\n]/.test(name) || name === '未分组') return '未分组'
+  return name.endsWith('广播') ? name : name + '广播'
+}
+
 function safeMtime(p) {
   try { return existsSync(p) ? statSync(p).mtimeMs : 0 } catch { return 0 }
 }

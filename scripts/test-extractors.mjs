@@ -1293,8 +1293,12 @@ try {
       '走代理的名单变了：按 ADD-CHANNELS.md「要走代理的模块」做完再改这里')
     for (const dir of declared) assert.ok(dirs.includes(dir), `${dir} 走代理的模块目录名要和 id 一致`)
     const using = dirs.filter(dir => filesOf(dir).some(({ src }) => /outboundProxy\.js/.test(src)))
-    assert.deepEqual([...using].sort(), [...declared].sort(),
-      '引用 utils/outboundProxy.js 的目录必须恰好是声明了 outbound: proxy 的模块：接了代理就要登记，登记了就要接')
+    // 广播按地区选择出口，默认关闭；固定走代理的目录仍须声明探测目标。
+    for (const module of listModules().filter(m => m.category === 'radio')) {
+      assert.equal(module.configSchema.find(field => field.key === 'useProxy')?.default, false)
+      assert.equal(typeof module.fetchProxyMedia, 'function')
+    }
+    assert.deepEqual([...using].sort(), [...declared, 'radio'].sort())
     for (const module of proxyModules()) {
       assert.match(module.proxyProbe.url, /^https:\/\//, `${module.id} 的探测目标要是 https，才能顺带验证隧道`)
       assert.equal(module.defaultEnabled, false, `${module.id} 走代理的模块默认关，由用户确认代理可用后打开`)

@@ -2,9 +2,9 @@ import { readFileSync } from 'node:fs'
 import { launchBrowser, closeBrowser } from '../../utils/browserLauncher.js'
 
 const stations = JSON.parse(readFileSync(new URL('./guangdong.json', import.meta.url)))
-export async function guangdong(id) {
+export async function guangdong(id, launchOptions) {
   if (!Object.hasOwn(stations, id)) throw Error('未知广东广播频率')
-  const browser = await launchBrowser({ label: '广东广播' })
+  const browser = await launchBrowser({ label: '广东广播', launchOptions })
   try {
     return await collect(browser, id)
   } finally {

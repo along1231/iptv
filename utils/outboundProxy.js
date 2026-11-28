@@ -91,6 +91,17 @@ function dispatcherFor(url) {
   return current.dispatcher
 }
 
+// 开启源级代理的广播和网页必须经指定出口，配置被移除时也不能退回直连。
+export function requiredProxyUrl() {
+  const url = outboundProxyUrl()
+  if (!url) throw Error('请先在「设置 → 网络代理」配置代理')
+  return url
+}
+
+export function requiredProxyFetch(url, options = {}) {
+  return undiciFetch(url, { ...options, dispatcher: dispatcherFor(requiredProxyUrl()) })
+}
+
 function isLoopback(raw) {
   try {
     const host = bareHost(new URL(raw).hostname.toLowerCase())

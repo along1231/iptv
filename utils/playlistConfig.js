@@ -210,7 +210,7 @@ export function saveConfig(profile, config) {
  * 属性值里可以有逗号（回看模板 `rrsip=A,rrsip=B`，issue #200；外部源频道名写进
  * tvg-id="…"），按第一个逗号切会把属性残渣当成频道名。
  */
-function extinfName(line) {
+export function extinfName(line) {
   let quoted = false
   for (let i = 0; i < line.length; i++) {
     if (line[i] === '"') quoted = !quoted
@@ -222,15 +222,15 @@ function extinfName(line) {
 /**
  * 解析 interface.txt 文件
  */
-export function parseInterfaceTxt({ forTxt = false } = {}) {
+export function parseInterfaceTxt({ forTxt = false, content } = {}) {
   try {
     const interfacePath = dataPath('interface.txt')
-    if (!existsSync(interfacePath)) {
+    if (content === undefined && !existsSync(interfacePath)) {
       printYellow("interface.txt 不存在")
       return []
     }
     
-    const content = readFileSync(interfacePath, 'utf-8')
+    content ??= readFileSync(interfacePath, 'utf-8')
     const lines = (forTxt ? content : markFengshowsLiveUrls(content)).split('\n')
     const groups = {}
     const playbackIds = getPlaybackChannelIds()   // 解析一次：用于逐频道判定有无节目单（issue #38）
@@ -247,13 +247,14 @@ export function parseInterfaceTxt({ forTxt = false } = {}) {
       
       // 解析频道信息
       if (line.startsWith('#EXTINF:')) {
+        const channelName = extinfName(line)
+        const isRadio = / radio="true"/i.test(line.slice(0, line.length - channelName.length))
         const tvgIdMatch = line.match(/tvg-id="([^"]*)"/)
         const tvgNameMatch = line.match(/tvg-name="([^"]*)"/)
         const tvgLogoMatch = line.match(/tvg-logo="([^"]*)"/)
         const groupMatch = line.match(/group-title="([^"]*)"/)
         const sourceIdsMatch = line.match(/source-ids="([^"]*)"/)   // 源归属（issue #29/#68），内部属性
         const catchup = parseCatchupAttrs(line)   // 频道级回看声明（issue #119 / #190）
-        const channelName = extinfName(line)
 
         // 播放地址不一定紧跟 EXTINF——防盗链频道中间夹着 #EXTVLCOPT，
         // 要连同 opts 一起收下，并把游标推到地址行，否则 opt 行会被当成播放地址。
@@ -291,7 +292,7 @@ export function parseInterfaceTxt({ forTxt = false } = {}) {
             tvgId: tvgIdMatch ? tvgIdMatch[1] : '',
             tvgName: tvgName,
             logo,
-            ...(/ radio="true"/i.test(line) ? { radio: true } : {}),
+            ...(isRadio ? { radio: true } : {}),
             logoStatus: classifyLogo(logo),       // local | source | auto | none
             epgMatched,                            // 该频道是否有节目单
             epgName: epgMatched ? epgId : '',      // 命中的规范名（详情里展示，解释「显示名虽特殊但已归一匹配」）

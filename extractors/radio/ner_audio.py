@@ -1,4 +1,5 @@
 """Read the education station's short-window AAC HLS over one persistent connection."""
+import os
 import re
 from http.client import HTTPException, HTTPSConnection
 from time import monotonic, sleep
@@ -9,7 +10,13 @@ def segments(master):
     origin = urlsplit(master)
     if origin.scheme != "https" or not (origin.hostname or "").endswith(".ner.gov.tw"):
         raise ValueError("教育电台直播主机不符")
-    conn = HTTPSConnection(origin.hostname, timeout=10)
+    proxy = os.environ.get("IPTV_RADIO_PROXY")
+    if proxy:
+        endpoint = urlsplit(proxy)
+        conn = HTTPSConnection(endpoint.hostname, endpoint.port, timeout=10)
+        conn.set_tunnel(origin.hostname, origin.port or 443)
+    else:
+        conn = HTTPSConnection(origin.hostname, timeout=10)
 
     def read(url):
         parts = urlsplit(url)

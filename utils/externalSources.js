@@ -3,14 +3,15 @@ import { randomBytes } from "node:crypto"
 import { writeJsonFileSync } from "./fileUtil.js"
 import { dataPath } from "./paths.js"
 import { enableBuiltInSubscriptions } from "../config.js"
-import { printBlue, printGreen, printGrey, printRed, printYellow } from "./colorOut.js"
-import { extractM3u8FromWeb, validateM3u8 } from "./webSourceExtractor.js"
-import { collectOptsUntilUrl, cleanUserAgent, withUserAgent } from "./channelOpts.js"
+import { printBlue, printGreen, printRed, printYellow } from "./colorOut.js"
+import { extractM3u8FromWeb, hasAudioSuffix, inspectStream } from "./webSourceExtractor.js"
+import { collectOptsUntilUrl, cleanUserAgent, sanitizeOpts, withUserAgent } from "./channelOpts.js"
 import { parseCatchupAttrs, resolveCatchup, sanitizeCatchup } from "./channelCatchup.js"
+import { radioRegionGroup } from "./sourceGroupFallback.js"
 import { FailureBackoff } from "./refreshBackoff.js"
 import fetch from 'node-fetch'
 import { customSourceFetch, proxiableUrl, proxyRefFor } from "./customSourceProxy.js"
-import { outboundProxyUrl } from "./outboundProxy.js"
+import { outboundProxyUrl, requiredProxyFetch, outboundProxyKey } from "./outboundProxy.js"
 
 /**
  * 从一行 #EXTINF 提取频道显示名。
@@ -30,6 +31,14 @@ function extractExtinfName(line) {
   }
   const comma = line.indexOf(',')
   return comma !== -1 ? line.slice(comma + 1).trim() : ''
+}
+
+// 只读属性名，避免把频道名或其它带引号属性里的 “radio=1” 当成频道类型。
+function radioAttribute(metadata) {
+  for (const [, key, quoted, single, bare] of metadata.matchAll(/(?:^|[\s,])([\w-]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s,]+))/g)) {
+    if (key.toLowerCase() === 'radio') return /^(true|1)$/i.test(quoted ?? single ?? bare)
+  }
+  return undefined
 }
 
 /**
@@ -56,6 +65,8 @@ function parseM3uContent(content) {
     // 海外模块和自定义订阅共用：服务端现取主清单，把最高档挪到最前。
     const topFirst = /\sx-top-first="(?:1|true)"/i.test(line)
     const name = extractExtinfName(line)
+    const attributes = line.slice(0, line.length - name.length)
+    const radio = radioAttribute(attributes)
     // 源自带的回看模板 / 天数：不收下就只能继承订阅头的咪咕模板，回看静默失效（issue #190）
     const catchup = resolveCatchup(headerCatchup, line)
 
@@ -70,6 +81,7 @@ function parseM3uContent(content) {
         logo: logoMatch ? logoMatch[1] : '',
         url: url,
         ...(opts.length ? { opts } : {}),
+        ...((radio ?? hasAudioSuffix(url)) ? { radio: true } : {}),
         ...(topFirst ? { topFirst: true } : {}),
         ...catchup
       })
@@ -149,7 +161,8 @@ function parsePlaylistContent(content) {
 export function resolveSubscriptionGroup(ch, source) {
   if (source && source.ignoreGroups === true) return '未分组'
   const own = ch && ch.group && ch.group !== '未分组' ? ch.group : ''
-  return own || (source && source.group) || '未分组'
+  const group = own || source?.group || '未分组'
+  return ch?.radio === true ? radioRegionGroup(group) : group
 }
 
 /**
@@ -564,20 +577,24 @@ function isBuiltInSubscriptionSource(source) {
 }
 
 /**
- * 这个源有没有开「经网络代理转发」（customSourceProxy.js）。只认用户自己加的订阅源和直连源：
- * 内置「精选频道」订阅不认（它和内置模块一样不让用户改出站），抓取模式不认（网页抓取由浏览器做，不经这个代理）。
+ * 用户添加的订阅、直连和网页源均可单独使用网络代理。
  */
 function sourceUsesProxy(source) {
   if (!source || source.useProxy !== true || isBuiltInSubscriptionSource(source)) return false
   if (source.mode === 'subscription') return true
   const mode = source.mode || (String(source.webUrl || '').trim() ? 'fetch' : 'direct')
-  return mode === 'direct'
+  return mode === 'direct' || mode === 'fetch'
 }
 
 // 两种处理共用稳定入口，出站是否经网络代理独立记录；普通频道仍保留原地址。
 function customPlaybackFields(source, name, url, topFirst) {
   const mode = source.mode || (String(source.webUrl || '').trim() ? 'fetch' : 'direct')
-  if (!source.id || isBuiltInSubscriptionSource(source) || !['subscription', 'direct'].includes(mode) || !proxiableUrl(url)) return {}
+  if (!source.id || isBuiltInSubscriptionSource(source)) return {}
+  if (mode === 'fetch') {
+    if (!sourceUsesProxy(source) || !/^https?:\/\//i.test(url)) return {}
+    return { proxyRef: proxyRefFor(source.id, name, source.webUrl), useProxy: true, requireProxy: true }
+  }
+  if (!['subscription', 'direct'].includes(mode) || !proxiableUrl(url)) return {}
   const useProxy = sourceUsesProxy(source)
   if (!useProxy && topFirst !== true) return {}
   return { proxyRef: proxyRefFor(source.id, name, url), useProxy, topFirst: topFirst === true }
@@ -720,7 +737,16 @@ function retireBuiltInSubscriptions(config) {
  */
 function playlistFingerprint(source) {
   if (!source) return null
-  return JSON.stringify([source.m3u8Url ?? null, source.parsedChannels ?? null])
+  return JSON.stringify([source.m3u8Url ?? null, source.parsedChannels ?? null, source.radioPageHeaders === true, source.detectedRadioUrl ?? null])
+}
+
+function loadStoredSource(source) {
+  const loaded = { ...source, updateOnStartup: source.updateOnStartup !== false }
+  // 旧版缓存丢弃了 radio 属性。本地导入保存了原文，重启时即可还原，无需联网。
+  if (source.mode === 'subscription' && typeof source.subscriptionContent === 'string' && source.subscriptionContent.trim()) {
+    loaded.parsedChannels = parsePlaylistContent(source.subscriptionContent)
+  }
+  return loaded
 }
 
 /**
@@ -765,7 +791,7 @@ class ExternalSourceManager {
       const content = readFileSync(EXTERNAL_SOURCES_PATH, 'utf-8')
       const parsed = JSON.parse(content)
       if (Array.isArray(parsed)) {
-        const sources = parsed.map(s => ({ ...s, updateOnStartup: s.updateOnStartup !== false }))
+        const sources = parsed.map(loadStoredSource)
         const config = {
           enabled: true,
           includeInPlaylists: true,
@@ -793,10 +819,7 @@ class ExternalSourceManager {
           parsed.updateOnStartup = true // 默认开启
         }
         // 为每个源添加默认的 updateOnStartup
-        parsed.sources = parsed.sources.map(s => ({
-          ...s,
-          updateOnStartup: s.updateOnStartup !== false
-        }))
+        parsed.sources = parsed.sources.map(loadStoredSource)
         // 播种内置订阅源（只播种从未播种过的；尊重用户删除）
         const retired = retireBuiltInSubscriptions(parsed)
         const mutated = ensureBuiltInSubscriptions(parsed)
@@ -867,6 +890,7 @@ class ExternalSourceManager {
     const catchup = sanitizeCatchup(sourceConfig)
     const newSource = {
       name: sourceConfig.name,
+      ...(sourceConfig.radio === true ? { radio: true } : {}),
       group: sourceConfig.group || "其他",
       webUrl: sourceConfig.webUrl,
       playButtonSelector: sourceConfig.playButtonSelector,
@@ -904,6 +928,19 @@ class ExternalSourceManager {
     return { success: false, message: '索引无效' }
   }
 
+  async detectDirectMedia(source) {
+    if (!source?.enabled || source.webUrl || source.mode === 'subscription' || !source.m3u8Url) return
+    const url = source.m3u8Url
+    const viaProxy = sourceUsesProxy(source) && outboundProxyUrl()
+    const kind = await inspectStream(url, viaProxy ? { fetchImpl: customSourceFetch } : {})
+    const cur = this.relocateSource(source)
+    if (!cur || cur.m3u8Url !== url || cur.webUrl || cur.mode === 'subscription') return
+    if (kind === 'audio') cur.detectedRadioUrl = url
+    else if (kind) delete cur.detectedRadioUrl
+    if (kind === 'video') delete cur.radio
+    this.saveSources()
+  }
+
   /**
    * 更新特定源的 m3u8 链接
    */
@@ -923,7 +960,10 @@ class ExternalSourceManager {
 
     // 新增：如果 webUrl 为空且 m3u8Url 已填写，直接视为抓取成功
     if (!source.webUrl && source.m3u8Url) {
-      this.sources.sources[index].lastUpdated = new Date().toISOString()
+      await this.detectDirectMedia(source)
+      const cur = this.relocateSource(source)
+      if (!cur || cur.m3u8Url !== source.m3u8Url) return { success: false, message: '源设置已变更' }
+      cur.lastUpdated = new Date().toISOString()
       this.saveSources()
       printGreen(`${source.name} 已手动填写m3u8，跳过网页抓取`)
       return { success: true, m3u8Url: source.m3u8Url, info: '已手动填写m3u8，跳过网页抓取' }
@@ -931,10 +971,16 @@ class ExternalSourceManager {
 
     try {
       printBlue(`更新外部源: ${source.name}`)
+      const useProxy = sourceUsesProxy(source)
+      const route = useProxy && outboundProxyKey()
+      if (useProxy && !outboundProxyUrl()) throw Error('请先在「设置 → 网络代理」配置代理')
+      const probeOptions = useProxy ? { fetchImpl: requiredProxyFetch } : {}
       const extracted = await extractM3u8FromWeb(source.webUrl, {
         playButtonSelector: source.playButtonSelector,
         returnAll: true,
-        ...source.extractOptions
+        ...source.extractOptions,
+        useProxy,
+        radio: true // 自定义网页统一发现 HLS 和音频候选
       })
       const candidates = Array.isArray(extracted)
         ? extracted
@@ -942,35 +988,53 @@ class ExternalSourceManager {
           ? [extracted]
           : []
       if (candidates.length > 0) {
-        // 验证链接有效性（逐个尝试）
+        let url = ''
+        let warning
+        let needsPageHeaders = false
+        let kind = ''
         for (const candidate of candidates) {
-          const isValid = await validateM3u8(candidate, { referer: source.webUrl })
-          if (isValid) {
-            const cur = this.relocateSource(source)
-            if (!cur) return { success: false, message: '源已被删除，放弃写入抓取结果' }
-            cur.m3u8Url = candidate
-            cur.lastUpdated = new Date().toISOString()
-            this.fetchBackoff.clear(this.backoffKey(cur))
-            this.saveSources()
-            printGreen(`${source.name} 更新成功: ${candidate}`)
-            return { success: true, m3u8Url: candidate }
+          kind = await inspectStream(candidate, probeOptions)
+          if (!kind) {
+            kind = await inspectStream(candidate, { ...probeOptions, referer: source.webUrl })
+            needsPageHeaders = Boolean(kind)
+          }
+          if (kind) {
+            url = candidate
+            break
           }
         }
-        // 校验失败时选择最有可能正确的链接（优先选择链接最长的，通常包含完整参数）
-        const fallback = candidates.sort((a, b) => b.length - a.length)[0]
+        if (!url) {
+          // 沿用旧电视源的 HLS 兜底，不能把一个未验证的网页或音效写成广播。
+          const manifests = candidates.filter(candidate => /\.m3u8(?:[?#]|$)/i.test(candidate))
+          if (!manifests.length || source.radio === true || source.detectedRadioUrl) {
+            const message = '候选地址未通过直播流校验'
+            this.noteFetchFailure(source, message)
+            return { success: false, message }
+          }
+          url = manifests.sort((a, b) => b.length - a.length)[0]
+          warning = 'HLS 清单暂未通过校验，已保存候选地址'
+        }
         const cur = this.relocateSource(source)
         if (!cur) return { success: false, message: '源已被删除，放弃写入抓取结果' }
-        cur.m3u8Url = fallback
+        if (sourceUsesProxy(cur) !== useProxy || (useProxy && route !== outboundProxyKey()) ||
+            cur.webUrl !== source.webUrl || Boolean(cur.radio) !== Boolean(source.radio)) {
+          return { success: false, message: '源设置已变更，请重新抓取' }
+        }
+        cur.m3u8Url = url
+        if (kind === 'audio') cur.detectedRadioUrl = url
+        else delete cur.detectedRadioUrl
+        if (kind === 'video') delete cur.radio
+        if (needsPageHeaders) cur.radioPageHeaders = true
+        else delete cur.radioPageHeaders
         cur.lastUpdated = new Date().toISOString()
         this.fetchBackoff.clear(this.backoffKey(cur))
         this.saveSources()
-        printYellow(`${source.name} m3u8校验失败，已保存最长链接（共${candidates.length}个候选）`)
-        printGrey(`  选中: ${fallback.substring(0, 100)}...`)
-        return { success: true, m3u8Url: fallback, warning: `m3u8校验失败，已保存最长链接（共${candidates.length}个候选）` }
+        printGreen(`${source.name} 更新成功: ${url}`)
+        return { success: true, m3u8Url: url, ...(warning ? { warning } : {}) }
       } else {
-        printRed(`${source.name} 未能提取到m3u8链接`)
-        this.noteFetchFailure(source, '未能提取到m3u8链接')
-        return { success: false, message: '未能提取到m3u8链接' }
+        const message = '未找到可用直播地址'
+        this.noteFetchFailure(source, message)
+        return { success: false, message }
       }
     } catch (error) {
       printRed(`${source.name} 更新失败: ${error.message}`)
@@ -1207,6 +1271,7 @@ class ExternalSourceManager {
             url: ch.url,
             logo: ch.logo || "",
             groupTitle: group,
+            ...(ch.radio === true ? { radio: true } : {}),
             sourceId: source.id ? `ext:${source.id}` : undefined,  // 源归属（issue #29/#68）
             ...(builtInSubscription ? { builtInSubscription: true } : {}),
             ...(opts && opts.length ? { opts } : {}),
@@ -1219,18 +1284,29 @@ class ExternalSourceManager {
       
       // 直连/抓取模式：单频道
       if (source.m3u8Url) {
-        if (!groupMap.has(source.group)) {
-          groupMap.set(source.group, {
-            name: source.group,
+        const radio = source.radio === true || source.detectedRadioUrl === source.m3u8Url
+        const group = radio ? radioRegionGroup(source.group) : source.group
+        let opts = []
+        if (source.radioPageHeaders && /^https?:\/\//i.test(source.webUrl)) {
+          try {
+            const page = new URL(source.webUrl)
+            opts = sanitizeOpts(['http-referrer=' + page.href, 'http-origin=' + page.origin])
+          } catch { /* 无有效网页地址时仍允许播放直链 */ }
+        }
+        if (!groupMap.has(group)) {
+          groupMap.set(group, {
+            name: group,
             dataList: []
           })
         }
         
-        groupMap.get(source.group).dataList.push({
+        groupMap.get(group).dataList.push({
           name: source.name,
           url: source.m3u8Url,
+          ...(opts.length ? { opts } : {}),
           logo: source.logo || "",
-          groupTitle: source.group,
+          groupTitle: group,
+          ...(radio ? { radio: true } : {}),
           sourceId: source.id ? `ext:${source.id}` : undefined,   // 源归属（issue #29/#68）
           ...customPlaybackFields(source, source.name, source.m3u8Url, source.topFirst),
           // 复制来的副本保留原频道的回看声明（issue #190），地址改过就不再适用
@@ -1240,6 +1316,24 @@ class ExternalSourceManager {
     })
     
     return Array.from(groupMap.values())
+  }
+
+  // 只索引实际启用的广播。入口是稳定的频道引用，不接受播放器传入上游地址。
+  radioSource(ref) {
+    if (!this.radioIndex || this.radioIndex.revision !== this.revision) {
+      const entries = new Map()
+      if (this.sources.includeInPlaylists !== false) {
+        for (const group of this.getValidChannels()) {
+          for (const ch of group.dataList) {
+            if ((!ch.radio && !ch.requireProxy) || !ch.sourceId || !/^https?:\/\//i.test(ch.url)) continue
+            const id = (ch.proxyRef || proxyRefFor(ch.sourceId.slice(4), ch.name, ch.url)).slice(3)
+            entries.set('cr-' + id, ch)
+          }
+        }
+      }
+      this.radioIndex = { revision: this.revision, entries }
+    }
+    return this.radioIndex.entries.get(ref)
   }
 
   /**
@@ -1291,6 +1385,10 @@ class ExternalSourceManager {
       return { success: false, message: '索引无效' }
     }
     
+    if (this.sources.sources[index].m3u8Url !== m3u8Url) {
+      delete this.sources.sources[index].radio
+      delete this.sources.sources[index].detectedRadioUrl
+    }
     this.sources.sources[index].m3u8Url = m3u8Url
     this.sources.sources[index].lastUpdated = new Date().toISOString()
     return this.saveSources()

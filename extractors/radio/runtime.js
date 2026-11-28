@@ -8,6 +8,10 @@ import dalianEpg from '../dalian/epg.js'
 import { guangdong } from './guangdong.js'
 import { shanghaiDays } from '../../utils/epgXmltv.js'
 
+import { openSourceProxy } from '../../utils/sourceProxyBridge.js'
+import { fetchUpstreamResponse } from '../../utils/hlsProxy.js'
+import { outboundProxyKey, requiredProxyFetch } from '../../utils/outboundProxy.js'
+
 const run = promisify(execFile)
 const worker = fileURLToPath(new URL('./worker.py', import.meta.url))
 const streams = new Map()
@@ -31,10 +35,10 @@ function cached(map, key, ttl, load) {
   return map.get(key).promise
 }
 
-async function request(mode, key, ...args) {
+async function request(proxy, mode, key, ...args) {
   try {
     const { stdout } = await run('python3', ['-B', worker, mode, key, ...args], {
-      timeout: 120000, maxBuffer: 4 * 1024 * 1024,
+      env: proxy?.env, timeout: 120000, maxBuffer: 4 * 1024 * 1024,
     })
     return JSON.parse(stdout)
   } catch (error) {
@@ -43,24 +47,40 @@ async function request(mode, key, ...args) {
   }
 }
 
-export function stream(key) {
+export function fetchRadioMedia(ref, config, url, options) {
+  return fetchUpstreamResponse(url, config.useProxy ? { ...options, fetchImpl: requiredProxyFetch } : options)
+}
+
+export function stream(key, useProxy = false) {
+  const route = useProxy ? 'proxy:' + outboundProxyKey() + '/' : 'default/'
   if (key.startsWith('cn-dalian-')) {
-    return cached(streams, 'dalian', 20000, dalianRadioCatalog).then(catalog => {
+    return cached(streams, route + 'dalian', 20000, () => dalianRadioCatalog(useProxy ? requiredProxyFetch : fetch)).then(catalog => {
       const url = catalog.get(key.slice('cn-dalian-'.length))
       if (!url) throw Error('大连广播目录缺少此频率')
       return url
     })
   }
-  return cached(streams, key, 20000, () => key.startsWith('gdtv-') ? guangdong(key.slice(5)) : request('stream', key))
+  return cached(streams, route + key, 20000, async () => {
+    const proxy = useProxy ? await openSourceProxy() : null
+    try {
+      return key.startsWith('gdtv-') ? await guangdong(key.slice(5), proxy?.launchOptions) : await request(proxy, 'stream', key)
+    } finally { await proxy?.close() }
+  })
 }
 
-export async function programmes(key, day, options) {
+export async function programmes(key, day, options, useProxy = false) {
+  if (useProxy) options = { ...options, fetchImpl: requiredProxyFetch }
   if (!/^\d{8}$/.test(day)) throw Error('广播节目单日期无效')
   if (key.startsWith('gdtv-')) return guangdongEpg.programmes(key.slice(5), day, options)
   if (key.startsWith('cn-dalian-')) return dalianEpg.programmes(key.slice('cn-dalian-'.length), day, options)
   const [today, tomorrow] = shanghaiDays(Date.now(), 2)
   const anchor = day === tomorrow ? today : day
-  const rows = await cached(guides, key + '/' + anchor, 300000, () => request('guide', key, anchor))
+  const route = useProxy ? 'proxy:' + outboundProxyKey() : 'default'
+  const rows = await cached(guides, route + '/' + key + '/' + anchor, 300000, async () => {
+    const proxy = useProxy ? await openSourceProxy() : null
+    try { return await request(proxy, 'guide', key, anchor) }
+    finally { await proxy?.close() }
+  })
   const start = Date.parse(day.slice(0, 4) + '-' + day.slice(4, 6) + '-' + day.slice(6) + 'T00:00:00+08:00')
   return rows.filter(row => row.title && row.stop > row.start && row.start >= start && row.start < start + 86400000)
 }
@@ -71,7 +91,7 @@ export function closeAudio() {
 }
 
 let listeners = 0
-export async function audio(key, station, method) {
+export async function audio(key, station, method, useProxy = false) {
   const aac = key.startsWith('ner-')
   const headers = { 'Content-Type': aac ? 'audio/aac' : 'audio/mpeg', 'Cache-Control': 'no-store' }
   if (method === 'HEAD' || method === 'OPTIONS') return { headers }
@@ -79,6 +99,7 @@ export async function audio(key, station, method) {
   if (listeners >= 16) return { status: 503, body: '广播试听连接已满' }
   listeners++
   let child
+  let proxy
   let disposed = false
   const dispose = () => {
     if (disposed) return
@@ -86,16 +107,19 @@ export async function audio(key, station, method) {
     listeners--
     children.delete(child)
     child?.kill('SIGKILL')
+    proxy?.close().catch(() => {})
   }
   try {
+    if (useProxy) proxy = await openSourceProxy()
+    const options = { stdio: ['ignore', 'pipe', 'ignore'], env: proxy?.env }
     if (aac) {
-      child = spawn('python3', ['-B', worker, 'aac', key], { stdio: ['ignore', 'pipe', 'ignore'] })
+      child = spawn('python3', ['-B', worker, 'aac', key], options)
     } else {
       const referer = station.relay ? ['-referer', new URL(station.page).origin + '/'] : []
-      const url = await stream(key)
+      const url = await stream(key, useProxy)
       child = spawn('ffmpeg', ['-nostdin', '-v', 'error', '-rw_timeout', '15000000', ...referer,
-        '-i', url, '-map', '0:a:0', '-c:a', 'libmp3lame', '-b:a', '96k', '-f', 'mp3',
-        '-flush_packets', '1', 'pipe:1'], { stdio: ['ignore', 'pipe', 'ignore'] })
+        ...(proxy ? ['-http_proxy', proxy.url] : []), '-i', url, '-map', '0:a:0', '-c:a', 'libmp3lame', '-b:a', '96k', '-f', 'mp3',
+        '-flush_packets', '1', 'pipe:1'], options)
     }
     children.add(child)
     const signal = AbortSignal.timeout(45000)

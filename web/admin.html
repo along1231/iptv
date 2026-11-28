@@ -2836,7 +2836,7 @@
         }
         .my-playlist-info h3 { color: var(--ui-text); font-size: 24px; font-weight: 600; letter-spacing: -.5px; }
         .my-playlist-info #myChannelTotal { margin-left: 8px; color: var(--ui-muted) !important; letter-spacing: 0; }
-        .my-playlist-actions { gap: 8px; }
+        .my-playlist-actions { justify-content: flex-end; gap: 8px; overflow-wrap: anywhere; }
         .my-playlist-actions > span { margin-right: 6px; color: var(--ui-text-secondary) !important; }
         .my-playlist-actions .btn { min-height: 36px; padding: 8px 13px; font-size: 13px; }
         .subscribe-bar {
@@ -4200,6 +4200,7 @@
         @media (prefers-reduced-motion: reduce) {
             *, *::before, *::after { transition: none !important; }
         }
+
     </style>
 </head>
 <body>
@@ -4774,13 +4775,11 @@
                 </div>
             </div>
 
-            <!-- 源管理：平台的全部内容来源集中在这一页，并像设置页一样用二级标签分区。
-                 「内置抓取模块」排第一，首次默认展示它，同时记住用户上次停留的分类。
-                 标签编号是固定的（0 = 自定义源 → #sourceSub0，1 = 内置抓取模块 → #sourceSub1），
-                 与按钮排在第几个无关：switchSourceTab 按 aria-controls / id 对应，记住的位置和各处跳转都用这个编号。 -->
+            <!-- 0 = 自定义源，1 = 电视与直播，3 = 广播。2 是已退役的内置源面板。 -->
             <div class="panel sources-panel">
                 <div class="source-subtabs" role="tablist" aria-label="源管理分类">
-                    <button type="button" class="mode-switch-btn active" role="tab" aria-selected="true" aria-controls="sourceSub1" onclick="switchSourceTab(1)">内置抓取模块 <span class="source-tab-count" id="sourceTabExtractorCount"></span><span class="attention-dot" data-alert-where="extractors" role="img" hidden></span></button>
+                    <button type="button" class="mode-switch-btn active" role="tab" aria-selected="true" aria-controls="sourceSub1" onclick="switchSourceTab(1)">电视与直播 <span class="source-tab-count" id="sourceTabExtractorCount"></span><span class="attention-dot" data-alert-where="extractors" data-media="tv" role="img" hidden></span></button>
+                    <button type="button" class="mode-switch-btn" role="tab" aria-selected="false" aria-controls="sourceSub3" onclick="switchSourceTab(3)">广播 <span class="source-tab-count" id="sourceTabRadioCount"></span><span class="attention-dot" data-alert-where="extractors" data-media="radio" role="img" hidden></span></button>
                     <button type="button" class="mode-switch-btn" role="tab" aria-selected="false" aria-controls="sourceSub0" onclick="switchSourceTab(0)">自定义源 <span class="source-tab-count" id="sourceTabExternalCount"></span></button>
                 </div>
 
@@ -4809,7 +4808,7 @@
                                     <li>点击"添加自定义源"选择模式：<strong>直连模式</strong>、<strong>抓取模式</strong>或<strong>订阅模式</strong></li>
                                     <li>想加回港澳台等网络第三方频道：点「添加「网络分享」列表」，再点"导入并保存"</li>
                                     <li><strong>抓取模式</strong>：填写频道名、分组和网页地址，点击"抓取并保存"</li>
-                                    <li><strong>直连模式</strong>：填写频道名、分组和m3u8链接，点击"保存"</li>
+                                    <li><strong>直连模式</strong>：填写频道名、分组和直播流地址，点击"保存"</li>
                                     <li>可编辑、删除、启用/禁用</li>
                                     <li>设置自动刷新间隔（默认4小时）</li>
                                 </ol>
@@ -4836,6 +4835,17 @@
                     <div class="extractor-filter" id="extractorFilter"></div>
                     <div class="source-category-list" id="extractorList"></div>
                 </div>
+                </div>
+
+                <div class="source-subpanel" id="sourceSub3" role="tabpanel">
+                    <div class="source-section">
+                        <div class="source-section-head">
+                            <strong>广播地区</strong> <span class="source-section-hint" id="radioFrequencyCount"></span>
+                        </div>
+                        <div id="radioNotice"></div>
+                        <div class="extractor-filter" id="radioFilter"></div>
+                        <div class="source-category-list" id="radioList"></div>
+                    </div>
                 </div>
 
             </div>
@@ -5066,7 +5076,7 @@
                 <section class="sys-section">
                     <div class="sys-section-head">
                         <div class="sys-section-title">网络代理</div>
-                        <div class="sys-section-desc">适用于 <span id="sysProxyScope">YouTube 直播、澳门、海外频道</span>和 Telegram 消息推送（这些模块的卡片上标有「走代理」）。有生效代理时，这些模块的取址、清单和视频分片均经服务器转发，会使用服务器带宽及代理流量；其他模块不使用这里填写的代理。自己添加的订阅源、直连源要走代理，在「自定义源」里该源的卡片上勾「经网络代理转发」。</div>
+                        <div class="sys-section-desc">适用于 <span id="sysProxyScope">YouTube 直播、澳门、海外频道</span>和 Telegram 消息推送（这些模块的卡片上标有「走代理」）。有生效代理时，这些模块的取址、清单和视频分片均经服务器转发，会使用服务器带宽及代理流量。广播可在「源管理 → 广播」按地区开启「经网络代理转发」。自定义订阅、直连和网页抓取可在各自的源卡片上开启。</div>
                     </div>
                     <div class="system-config-grid">
                         <div class="system-config-item sys-span-all">
@@ -5228,12 +5238,17 @@
         let systemConfig = {};
         let updatingSourceIndex = null; // 记录正在更新的源索引
         let epgConfig = { enabled: true, sources: [] }; // EPG 聚合源配置（issue #38）
-        const sourceTabIndexes = [0, 1];
+        const sourceTabIndexes = [0, 1, 3];
         let selectedSourceTab = 1;
         try {
             const savedSourceTab = localStorage.getItem('iptv-source-tab');
             const savedSourceTabIndex = Number(savedSourceTab);
             if (savedSourceTab !== null && sourceTabIndexes.includes(savedSourceTabIndex)) selectedSourceTab = savedSourceTabIndex;
+            if (localStorage.getItem('iptv-extractor-category') === 'radio') {
+                if (selectedSourceTab === 1) selectedSourceTab = 3;
+                localStorage.setItem('iptv-source-tab', String(selectedSourceTab));
+                localStorage.removeItem('iptv-extractor-category');
+            }
         } catch (e) {
             // 隐私模式或浏览器禁用存储时继续使用默认分类，不影响源管理功能。
         }
@@ -5312,7 +5327,7 @@
             const next = sourceTabIndexes.includes(Number(index)) ? Number(index) : 1;
             fitSubtabPanelHeight(document.querySelector('.sources-panel'));
             selectedSourceTab = next;
-            // 按编号对应按钮和面板，不按排列顺序：「内置抓取模块」(1) 的按钮排在「自定义源」(0) 前面
+            // 按稳定编号对应面板，按钮的显示顺序可以单独调整。
             const panelId = `sourceSub${next}`;
             document.querySelectorAll('.source-subtabs .mode-switch-btn').forEach(button => {
                 const active = button.getAttribute('aria-controls') === panelId;
@@ -5325,8 +5340,9 @@
             } catch (e) {
                 // 存储不可用只会失去“记住位置”，不影响标签切换。
             }
-            if (refresh && next === 1) {
+            if (next !== 0 && refresh) {
                 extractorFilterHold.clear();
+                renderExtractors();
                 loadExtractors();
             }
         }
@@ -5834,7 +5850,7 @@
 
         // 顶部提示条。也从 renderExtractors 里拆出来，理由同上：零模块时也该看得见。
         function renderExtractorNotice() {
-            const box = document.getElementById('extractorNotice');
+            const box = document.getElementById(selectedSourceTab === 3 ? 'radioNotice' : 'extractorNotice');
             if (!box) return;
             let html = '';
             if (extractorsState.corrupt) {
@@ -6056,8 +6072,8 @@
             renderExtractors();
         }
 
-        function renderExtractorFilter(modules) {
-            const bar = document.getElementById('extractorFilter');
+        function renderExtractorFilter(modules, barId = 'extractorFilter') {
+            const bar = document.getElementById(barId);
             if (!bar) return;
             const enabledCount = modules.filter(module => module.enabled).length;
             const options = [
@@ -6110,7 +6126,8 @@
          * 节 id 带 __ 前缀的是弹窗自己的，不会和注册表的分类 id 撞上。
          */
         function extractorBulkSections(state) {
-            const modules = (state && state.modules) || [];
+            const radioOnly = selectedSourceTab === 3;
+            const modules = ((state && state.modules) || []).filter(m => (m.category === 'radio') === radioOnly);
             const categories = extractorCategories();
             const known = new Set(categories.map(category => category.id));
             const categoryOf = m => m.county ? '__county'
@@ -6128,6 +6145,7 @@
                 .filter(section => section.items.length);
             // 内置单频道源的清单由远程配置下发，现在是空的（纬来体育改由精选频道里的固定地址提供）：
             // 空着就不列，免得多一个什么也不管的开关；以后清单里再加源会自动出现。
+            if (radioOnly) return sections;
             const builtInItems = (builtInConfig.sources || []).length
                 ? [{ kind: 'flag', id: 'enableBuiltInSources', name: '内置单频道源' }]
                 : [];
@@ -6245,7 +6263,7 @@
             modal.setAttribute('aria-hidden', 'true');
             extractorBulkBase = null;
             extractorBulkDraft = null;
-            const opener = document.querySelector('#extractorFilter .extractor-bulk-btn');
+            const opener = document.querySelector(selectedSourceTab === 3 ? '#radioFilter .extractor-bulk-btn' : '#extractorFilter .extractor-bulk-btn');
             if (opener) opener.focus({ preventScroll: true });
         }
 
@@ -6449,7 +6467,12 @@
             // 红点挂在问题所在的标签上（顶层标签和二级标签都标），鼠标停上去看是哪几条
             document.querySelectorAll('[data-alert-where]').forEach(dot => {
                 const wheres = dot.dataset.alertWhere.split(' ');
-                const hits = shown.filter(a => wheres.includes(a.where));
+                const hits = shown.filter(a => {
+                    if (!wheres.includes(a.where)) return false;
+                    if (!dot.dataset.media) return true;
+                    const module = extractorsState.modules?.find(m => m.id === a.target?.moduleId);
+                    return dot.dataset.media === (module?.category === 'radio' ? 'radio' : 'tv');
+                });
                 dot.hidden = !hits.length;
                 dot.classList.toggle('is-warning', hits.length > 0 && hits.every(a => a.level === 'warning'));
                 const label = hits.map(a => a.title).join('、');
@@ -6542,11 +6565,11 @@
             closeAlertCenter();
             if (kind === 'module' || kind === 'extractors') {
                 await switchTab(1);
-                switchSourceTab(1, false);
+                const target = extractorsState.modules?.find(m => m.id === moduleId);
+                switchSourceTab(target?.category === 'radio' ? 3 : 1, false);
                 if (kind === 'module') {
                     // 先切到模块所在的分类，关掉详情后看到的就是它那张卡片
-                    const target = ((extractorsState && extractorsState.modules) || []).find(m => m.id === moduleId);
-                    if (target) setExtractorCategory(target.category || 'standard', false);
+                    if (target && target.category !== 'radio') setExtractorCategory(target.category || 'standard', false);
                     selectExtractorModule(moduleId);
                 }
                 return;
@@ -6608,24 +6631,28 @@
             // 也得在下面两条提前 return 之前：批量开关弹窗开着时，新状态要换成它的「还原」基准
             syncExtractorBulkBase();
 
-            const box = document.getElementById('extractorList');
+            const radioOnly = selectedSourceTab === 3;
+            const box = document.getElementById(radioOnly ? 'radioList' : 'extractorList');
             if (!box) return;
-            const modules = extractorsState.modules || [];
-            const tabCount = document.getElementById('sourceTabExtractorCount');
-            if (tabCount) {
-                const enabledCount = modules.filter(module => module.enabled).length;
-                tabCount.textContent = modules.length ? `${enabledCount}/${modules.length}` : '0';
+            const allModules = extractorsState.modules || [];
+            const radio = allModules.filter(m => m.category === 'radio');
+            const television = allModules.filter(m => m.category !== 'radio');
+            for (const [id, items] of [['sourceTabExtractorCount', television], ['sourceTabRadioCount', radio]]) {
+                document.getElementById(id).textContent = `${items.filter(m => m.enabled).length}/${items.length}`;
             }
+            document.getElementById('radioFrequencyCount').textContent = radio.length
+                ? `${radio.reduce((sum, m) => sum + (m.enabled ? m.health?.channelCount || 0 : 0), 0)} 个内置频率` : '';
+            const modules = radioOnly ? radio : television;
             renderAlerts();
-            renderExtractorFilter(modules);
+            renderExtractorFilter(modules, radioOnly ? 'radioFilter' : 'extractorFilter');
             if (!modules.length) {
-                box.innerHTML = '<div class="system-config-hint" style="margin:0;">本版本没有内置任何抓取模块。</div>';
+                box.innerHTML = `<div class="system-config-hint" style="margin:0;">${radioOnly ? '暂无广播地区。' : '暂无电视与直播模块。'}</div>`;
                 renderExtractorDetail();
                 return;
             }
 
             // 选中的模块若已不存在（换版本、模块被下架），关闭详情而不是渲染空白
-            if (selectedExtractorId && !modules.some(m => m.id === selectedExtractorId)) {
+            if (selectedExtractorId && !allModules.some(m => m.id === selectedExtractorId)) {
                 selectedExtractorId = null;
             }
 
@@ -6644,7 +6671,7 @@
                      onclick="selectExtractorModule('${escapeHtml(m.id)}')">
                     <div class="source-card-title">
                         <span class="name">${escapeHtml(m.name)}</span>
-                        <span class="source-badge ${escapeHtml(category.id)}">${escapeHtml(category.badge)}</span>
+                        ${radioOnly ? '' : `<span class="source-badge ${escapeHtml(category.id)}">${escapeHtml(category.badge)}</span>`}
                         ${m.outbound === 'proxy' ? '<span class="source-badge proxy" title="取址、清单和视频都走「设置 → 网络代理」里的代理；没配代理时沿用环境变量代理或直连">走代理</span>' : ''}
                         <label class="source-card-toggle" onclick="event.stopPropagation()" title="即时生效，无需保存">
                             启用
@@ -6725,6 +6752,12 @@
                 return `${loose.length ? grid(loose) : ''}${panels ? `<div class="region-panel-list">${panels}</div>` : ''}`;
             };
 
+            if (radioOnly) {
+                box.innerHTML = activeModules.length ? modulesHtml(activeModules)
+                    : '<div class="extractor-filter-empty">没有符合当前筛选条件的广播地区。</div>';
+                renderExtractorDetail();
+                return;
+            }
             box.innerHTML = `<div class="extractor-category-bar" role="tablist" aria-label="模块分类">${categoryBar}</div>
                 <section class="source-category" role="tabpanel">
                     <div class="source-category-head">
@@ -8844,13 +8877,15 @@
         // 当前有没有生效的网络代理（'setting' 后台填的、'env' 环境变量 / 系统代理、'' 没有），随 GET /api/external-sources 带下来
         let externalProxySource = '';
 
-        // 订阅、直连卡片上的「经网络代理转发」（字段 useProxy，服务端见 utils/customSourceProxy.js）。
-        // 内置模块走不走代理是固定的，这里只给用户自己加的源；没有生效代理时不能勾，已勾的可以取消
-        function externalProxyField(index, source, { list, saveLabel }) {
+        // 自定义源卡片上的「经网络代理转发」（字段 useProxy，服务端见 utils/customSourceProxy.js）。
+        // 没有生效代理时不能勾，已勾的可以取消
+        function externalProxyField(index, source, { list, web = false, saveLabel }) {
             const checked = source.useProxy === true;
             const available = !!externalProxySource;
             const what = list ? '拉取列表、播放其中的 HLS 频道' : '播放这个频道（HLS）';
-            const hint = available
+            const webHint = available ? '抓取网页、校验直播地址和播放都经网络代理，保存后生效。'
+                : '请在「设置 → 网络代理」配置出口。已开启的网页源在代理不可用时会返回失败。';
+            const hint = web ? webHint : available
                 ? `<ol class="hint-list">
                         <li>勾选后，${what}都经「设置 → 网络代理」，清单和视频由服务器转发，播放设备不用设代理。</li>
                         <li>会用服务器的带宽和代理流量，同时看的人越多用得越多。</li>
@@ -8928,7 +8963,7 @@
             const sources = externalConfig.sources || [];
             // 内置订阅（精选频道）不在这一段露面：它是随程序自带、由维护者策展的内容，
             // 用户不该改它的名字/分组/刷新间隔，也不该把它删掉或换序 —— 需要的只有
-            // 「要不要它」这一个开关，那个开关在「内置抓取模块 → 批量开关」的「内置源」一节。
+            // 「要不要它」这一个开关，那个开关在「电视与直播 → 批量开关」的「内置源」一节。
             // 注意**只是不渲染，不从数组里摘掉**：externalConfig.sources 的下标是全站的
             // 定位键（还会作为 { action:'update', index } 发给服务端），动数组等于动契约。
             const visible = sources
@@ -9293,8 +9328,9 @@
         
         function renderGroupSelect(index, currentGroup) {
             const groups = getMiguGroups();
+            if (currentGroup && !groups.includes(currentGroup)) groups.push(currentGroup);
             const options = groups.map(group => 
-                `<option value="${group}" ${group === currentGroup ? 'selected' : ''}>${group}</option>`
+                `<option value="${escapeHtml(group)}" ${group === currentGroup ? 'selected' : ''}>${escapeHtml(group)}</option>`
             ).join('');
             return `<select onchange="updateExternalField(${index}, 'group', this.value)">${options}</select>`;
         }
@@ -9399,6 +9435,12 @@
                 </div>
             `;
             
+            const groupField = `
+                <label for="externalChannelGroup">分组或地区</label>
+                <input type="text" id="externalChannelGroup" list="externalChannelGroups" placeholder="例如：香港" value="${escapeHtml(source.group === '未分组' ? '' : source.group || '')}"
+                    oninput="updateExternalField(${index}, 'group', this.value || '未分组')">
+                <datalist id="externalChannelGroups">${getMiguGroups().map(g => `<option value="${escapeHtml(g)}"></option>`).join('')}</datalist>`;
+
             // 根据模式渲染不同的表单
             if (mode === 'fetch') {
                 // 抓取模式：网页地址 -> 自动抓取m3u8
@@ -9415,20 +9457,20 @@
                                 <input type="text" value="${source.name || ''}" oninput="updateExternalField(${index}, 'name', this.value)" placeholder="例：体育频道">
                             </div>
                             <div class="external-field">
-                                <label>所属分组 *</label>
-                                ${renderGroupSelect(index, source.group || '未分组')}
+                                ${groupField}
                             </div>
                         </div>
                         <div class="external-field">
                             <label>播放页面地址 *</label>
                             <input type="text" value="${source.webUrl || ''}" oninput="updateExternalField(${index}, 'webUrl', this.value)" placeholder="例：https://example.com/live.html">
-                            <div class="form-hint">填写直播页面地址，点击"抓取并保存"后系统会自动提取m3u8链接</div>
+                            <div class="form-hint">填写单个频道的直播或收听页面。</div>
                         </div>
                         <div class="external-field">
                             <label>自动刷新间隔（分钟）</label>
                             <input type="number" min="60" step="60" value="${source.refreshInterval || 240}" oninput="updateExternalField(${index}, 'refreshInterval', parseInt(this.value) || 240)" placeholder="240">
-                            <div class="form-hint">每隔多少分钟自动重新抓取m3u8链接，默认240分钟（4小时），步幅1小时</div>
+                            <div class="form-hint">默认每 4 小时重新抓取一次直播地址。</div>
                         </div>
+                        ${externalProxyField(index, source, { web: true, saveLabel: '抓取并保存' })}
                     </div>
                     <div class="external-detail-footer">
                         <div class="external-switches">
@@ -9597,14 +9639,13 @@
                                 <input type="text" value="${source.name || ''}" oninput="updateExternalField(${index}, 'name', this.value)" placeholder="例：体育频道">
                             </div>
                             <div class="external-field">
-                                <label>所属分组 *</label>
-                                ${renderGroupSelect(index, source.group || '未分组')}
+                                ${groupField}
                             </div>
                         </div>
                         <div class="external-field">
-                            <label>m3u8 直播链接 *</label>
+                            <label>直播流地址 *</label>
                             <input type="text" value="${source.m3u8Url || ''}" oninput="updateExternalField(${index}, 'm3u8Url', this.value)" placeholder="例：https://example.com/live.m3u8">
-                            <div class="form-hint">直接填写m3u8直播流地址</div>
+                            <div class="form-hint">支持电视和广播的播放地址。</div>
                         </div>
                         ${externalProxyField(index, source, { list: false, saveLabel: '保存' })}
                     </div>
@@ -10020,7 +10061,17 @@
         }
 
         function updateExternalField(index, field, value) {
-            externalConfig.sources[index][field] = value;
+            const source = externalConfig.sources[index];
+            if ((field === 'webUrl' || field === 'm3u8Url') && source[field] !== value) {
+                delete source.radio;
+                delete source.detectedRadioUrl;
+            }
+            if (source.mode === 'fetch' && field === 'webUrl' && source.webUrl !== value) {
+                source.m3u8Url = '';
+                source.lastUpdated = null;
+                delete source.radioPageHeaders;
+            }
+            source[field] = value;
             // 只写了页面副本，服务端还不知道 —— 标记「欠按保存」。
             // scope 用全局的 'ext' 而不是按源分：任一保存按钮都会把**整份**
             // externalConfig POST 回去，所以未保存状态本来就是全局的
@@ -10076,7 +10127,7 @@
                 setSaveDirty('ext', false);   // 整份 externalConfig 已落盘
                 
                 // 保存成功后执行更新
-                showStatus(`正在提取 ${sourceName} 的 m3u8 链接...`, 'info');
+                showStatus(`正在提取 ${sourceName} 的直播地址...`, 'info');
                 
                 const response = await fetch(API_PREFIX + '/api/external-sources', {
                     method: 'POST',
@@ -10097,7 +10148,7 @@
                 if (result.success !== false) {
                     const message = result.warning 
                         ? `${sourceName} 更新成功（${result.warning}）` 
-                        : `${sourceName} 更新成功！m3u8 链接已自动填充`;
+                        : `${sourceName} 更新成功！直播地址已自动填充`;
                     showStatus(message, 'success');
                     
                     // 重新加载所有频道数据以刷新显示
@@ -10162,7 +10213,7 @@
                 setSaveDirty('ext', false);   // 整份 externalConfig 已落盘
                 
                 // 执行抓取
-                showStatus(`正在抓取 ${sourceName} 的 m3u8 链接...`, 'info');
+                showStatus(`正在抓取 ${sourceName} 的直播地址...`, 'info');
                 
                 const response = await fetch(API_PREFIX + '/api/external-sources', {
                     method: 'POST',
@@ -10217,7 +10268,7 @@
                 return;
             }
             if (!source.m3u8Url || !source.m3u8Url.trim()) {
-                showStatus('请填写m3u8直播链接', 'error');
+                showStatus('请填写直播流地址', 'error');
                 return;
             }
             
@@ -10229,7 +10280,7 @@
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ action: 'save', sources: externalConfig })
+                    body: JSON.stringify({ action: 'save', sources: externalConfig, detectDirectIndex: index })
                 });
 
                 const result = await readJsonResponse(response);
@@ -11624,8 +11675,9 @@ if(success){
             const bar = document.getElementById('subscribeBar');
             if (!bar) return;
             const base = window.location.origin + API_PREFIX;
-            const q = (activeProfile && activeProfile !== 'default') ? ('?profile=' + encodeURIComponent(activeProfile)) : '';
-            const m3u = base + '/interface.m3u' + q;
+            const q = profileQuery();
+            const playlistPath = '/interface.m3u';
+            const m3u = base + playlistPath + q;
             const m3uCompat = m3u + (q ? '&relay=1' : '?relay=1');   // 兼容版：清单直出，给不跟随 302 的播放器（issue #98）
             const m3uProxy = m3u + (q ? '&relay=2' : '?relay=2');    // 全代理版：清单 + 分片都经服务器，给兼容版仍播不了的播放器（issue #98）
             const epg = base + '/playback.xml';
@@ -11634,9 +11686,9 @@ if(success){
                 `<span class="sb-group sb-group-main">`
                 + `<span class="sb-label">订阅地址</span>`
                 + `<code title="${escapeHtml(m3u)}">${escapeHtml(m3u)}</code>`
-                + `<button class="sb-copy" onclick="copyToClipboard('${m3u.replace(/'/g, "\\'")}', '订阅地址')">复制</button>`
-                + `<button class="sb-copy sb-copy-muted" onclick="copyToClipboard('${m3uCompat.replace(/'/g, "\\'")}', '兼容版订阅地址')" title="播放一直转圈/失败？极空间极影视、部分老电视盒不跟随跳转——用兼容版订阅（服务器直出播放清单，仅限与服务器同网观看）">兼容版</button>`
-                + `<button class="sb-copy sb-copy-muted" onclick="copyToClipboard('${m3uProxy.replace(/'/g, "\\'")}', '全代理版订阅地址')" title="兼容版仍播不了再用它：连视频分片也经服务器转发（占服务器带宽），给极空间极影视这类「清单里的绝对地址取不动」的播放器（issue #98）">全代理版</button>`
+                + `<button class="sb-copy" onclick="copyToClipboard('${m3u.replace(/'/g, "\\'")}', '订阅地址')">普通版</button>`
+                + `<button class="sb-copy sb-copy-muted" onclick="copyToClipboard('${m3uCompat.replace(/'/g, "\\'")}', '兼容版订阅地址')" title="HLS 清单由服务器返回，适合无法跟随跳转的播放器。">兼容版</button>`
+                + `<button class="sb-copy sb-copy-muted" onclick="copyToClipboard('${m3uProxy.replace(/'/g, "\\'")}', '全代理版订阅地址')" title="播放清单和媒体都由服务器转发，会占用服务器带宽。">全代理版</button>`
                 + `</span><span class="sb-group sb-group-epg">`
                 + `<span class="sb-sep">节目单 EPG</span>`
                 + `<code class="sb-epg" title="${escapeHtml(epg)}">${escapeHtml(epg)}</code>`
@@ -11646,7 +11698,7 @@ if(success){
             const cfgHost = (systemConfig && (systemConfig.host || (systemConfig.data && systemConfig.data.host))) || '';
             if (cfgHost) {
                 const pub = String(cfgHost).replace(/\/+$/, '') + API_PREFIX;
-                const pubM3u = pub + '/interface.m3u' + q;
+                const pubM3u = pub + playlistPath + q;
                 const pubEpg = pub + '/playback.xml';
                 html += `<span class="sb-group">`
                     + `<span class="sb-sep" title="来自「系统配置 → 公网地址」，分享给外网用户用这个">公网</span>`
@@ -14496,6 +14548,7 @@ if(success){
                     // 回看声明随副本带过去，否则副本会继承订阅头的咪咕回看模板（issue #190）
                     body: JSON.stringify({
                         name: currentChannelDetail.name, url: currentChannelDetail.url, logo: currentChannelDetail.logo || '', groups,
+                        radio: currentChannelDetail.radio,
                         catchup: currentChannelDetail.catchup, catchupDays: currentChannelDetail.catchupDays, catchupSource: currentChannelDetail.catchupSource
                     })
                 });
@@ -14757,7 +14810,7 @@ if(success){
                     // 内置订阅（精选频道）在「源管理」里不露面，没有可跳转的卡片。
                     // 它是随程序自带、由维护者策展的内容，本来就不打算让用户编辑。
                     switchSourceTab(1, false);
-                    showStatus('该频道来自自带的精选频道，不可编辑。不想要可以在「我的频道」隐藏，或在「内置抓取模块 → 批量开关」里整体关闭', 'error', 6000);
+                    showStatus('该频道来自自带的精选频道，不可编辑。不想要可以在「我的频道」隐藏，或在「电视与直播 → 批量开关」里整体关闭', 'error', 6000);
                 } else if (foundIndex !== -1) {
                     // 展开该源（selectExternalSource 是「一律展开」语义，不会 toggle）
                     selectExternalSource(foundIndex);

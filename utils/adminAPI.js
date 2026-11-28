@@ -106,7 +106,7 @@ export function getExternalSourcesAPI() {
 /**
  * 保存外部源配置
  */
-export async function saveExternalSourcesAPI(sources) {
+export async function saveExternalSourcesAPI(sources, detectDirectIndex) {
   try {
     // 本地导入源（内联 subscriptionContent）：保存前用内容重新解析出频道，保证 parsedChannels 与内容一致（issue #43）
     if (sources && Array.isArray(sources.sources)) {
@@ -118,6 +118,7 @@ export async function saveExternalSourcesAPI(sources) {
     }
     const result = externalSourceManager.saveSources(sources)
     if (result.success !== false) {
+      if (Number.isInteger(detectDirectIndex)) await externalSourceManager.detectDirectMedia(sources.sources[detectDirectIndex])
       // 保存成功后自动触发更新，仅重新生成播放列表（不重新抓取咪咕数据）
       await update(0, { regenerateOnly: true }).catch(err => {
         console.error('更新播放列表失败:', err)
@@ -259,7 +260,7 @@ export async function removeLogoAPI(name) {
  * 副本是固定地址的独立频道（独立隐藏/排序/删除）；咪咕频道地址为服务端跳转，暂不支持。
  * 原频道的回看声明（catchup / catchupDays / catchupSource）随副本带过去，由 addSource 消毒（issue #190）。
  */
-export async function copyChannelToGroupsAPI({ name, url, logo, groups, catchup, catchupDays, catchupSource } = {}) {
+export async function copyChannelToGroupsAPI({ name, url, logo, groups, radio, catchup, catchupDays, catchupSource } = {}) {
   try {
     if (!name || !url) return { success: false, message: '缺少频道名或地址' }
     // 自定义源的本机入口：复制按原地址建副本，并保留网络代理 / 最高画质设置。
@@ -279,7 +280,7 @@ export async function copyChannelToGroupsAPI({ name, url, logo, groups, catchup,
     const safeLogo = (typeof logo === 'string' && /^https?:\/\//.test(logo)) ? logo : ''
     let added = 0
     for (const group of targets) {
-      externalSourceManager.addSource({ name, group, m3u8Url: url, logo: safeLogo, enabled: true, autoRefresh: false, catchup, catchupDays, catchupSource, useProxy, topFirst })
+      externalSourceManager.addSource({ name, group, m3u8Url: url, logo: safeLogo, radio, enabled: true, autoRefresh: false, catchup, catchupDays, catchupSource, useProxy, topFirst })
       added++
     }
     await update(0, { regenerateOnly: true }).catch(err => console.error('复制频道后重新生成失败:', err))

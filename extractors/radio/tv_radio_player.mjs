@@ -5,6 +5,11 @@ import {encryptBase64} from '../nmtv/xxtea.js';
 import {parsePortalResponse} from '../nmtv/api.js';
 import {decryptJlntvResponse} from '../jlntv/api.js';
 
+import { fetch as undiciFetch, ProxyAgent } from 'undici';
+const proxy = process.env.IPTV_RADIO_PROXY;
+const dispatcher = proxy && new ProxyAgent(proxy);
+const fetchOfficial = dispatcher ? (url, options) => undiciFetch(url, {...options, dispatcher}) : fetch;
+
 const [provider, id, date] = process.argv.slice(2);
 if (provider === 'shaanxi') {
   const source = execFileSync('curl', ['-fsSL', '--max-time', '15', 'http://toutiao.cnwest.com/static/v1/stream.js'], {encoding:'utf8'});
@@ -17,12 +22,12 @@ if (provider === 'shaanxi') {
   console.log(JSON.stringify(JSON.parse(clear.toString('utf8').replace(/\0+$/, ''))));
 } else if (provider === 'jiangmen') {
   const {dailyKey, infoUrl, readOfficial} = await import('../jiangmen/protocol.js');
-  const info = JSON.parse(await readOfficial(infoUrl()));
+  const info = JSON.parse(await readOfficial(infoUrl(), {fetchImpl: fetchOfficial}));
   const row = info.channels.find(c => c.i === id && String(c.t) === '2');
   if (!row || row.l !== 'http://tideweblive.jmtv.cn' || !row.r.some(rate => rate.n === 64)) throw Error('江门广播配置已变');
   console.log(row.l + '/lsdream/' + id + '/64/' + (info.play.dl === 1 ? dailyKey(id) : 'live') + '.m3u8');
 } else if (provider === 'jilin' && !date) {
-  const res = await fetch('https://clientapi.jlntv.cn/broadcast/list?page=1&size=10000&type=0', {
+  const res = await fetchOfficial('https://clientapi.jlntv.cn/broadcast/list?page=1&size=10000&type=0', {
     headers: {'Client-Type': 'web'}, signal: AbortSignal.timeout(15000),
   });
   if (!res.ok) throw Error('吉林广播目录 HTTP ' + res.status);
@@ -35,7 +40,7 @@ if (provider === 'shaanxi') {
   const params = date ? {broadcastId: Number(id), date, sort: 1} : {type: 0, size: 100};
   const origin = provider === 'jilin' ? 'https://clientapi.jlntv.cn' : 'https://api-bt.nmtv.cn';
   const page = provider === 'jilin' ? 'https://m.jlntv.cn/' : 'https://www.nmtv.cn/liveBroadcast';
-  const response = await fetch(origin + '/broadcast/' + endpoint, {
+  const response = await fetchOfficial(origin + '/broadcast/' + endpoint, {
     method: 'POST',
     body: encryptBase64(JSON.stringify(params), '5b28bae827e651b3'),
     headers: {'Client-Type': 'web', 'Content-Type': 'application/json', Origin: new URL(page).origin, Referer: page},
@@ -54,7 +59,7 @@ if (provider === 'shaanxi') {
   }
 } else if (provider === 'shanxi') {
   const {provinceInfoUrl, parseProvinceInfo, provinceStreamUrl} = await import('../shanxi/api.js');
-  const response = await fetch(provinceInfoUrl(), {signal: AbortSignal.timeout(15000)});
+  const response = await fetchOfficial(provinceInfoUrl(), {signal: AbortSignal.timeout(15000)});
   if (!response.ok) throw Error('山西广播目录 HTTP ' + response.status);
   console.log(provinceStreamUrl({channelCode: id, name: id}, parseProvinceInfo(await response.text())));
 } else {

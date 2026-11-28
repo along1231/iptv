@@ -1,13 +1,15 @@
+import externalSourceManager from "./externalSources.js";
+import { proxyRefFor } from "./customSourceProxy.js";
 import { readFileSync } from "./fileUtil.js";
 import { dataPath } from "./paths.js";
 import { host, pass, enableTvgNormalize, enableDisplayNameUnify } from "../config.js";
 import { printDebug, printGreen, printGrey, printRed, printYellow } from "./colorOut.js";
-import { readConfig, parseInterfaceTxt, applyConfig, generateM3u8, generateTxt } from "./playlistConfig.js";
+import { readConfig, parseInterfaceTxt, extinfName, applyConfig, generateM3u8, generateTxt } from "./playlistConfig.js";
 import { getKeywordGroupRules } from "./groupRulesAPI.js";
 import { hasSourceFallbackGroups } from "./sourceGroupFallback.js";
 import { resolverFor, listModules, hasModule } from "../extractors/registry.js";
 import { getExtractorManager, getModuleConfig } from "./extractorManager.js";
-import { omitPlayerOnlyOpts } from "./channelOpts.js";
+import { collectOptsUntilUrl, omitPlayerOnlyOpts } from "./channelOpts.js";
 import { fetchUpstreamResponse } from "./hlsProxy.js";
 import { checkModuleBurst } from "./clientScanGuard.js";
 import { isLanHostHeader, proxiedPublicBase } from "./publicOrigin.js";
@@ -158,12 +160,62 @@ async function fetchManifestDirect(playURL, upstreamHeaders = {}, diag = {}, ups
   }
 }
 
+function radioModeUrl(channel, mode) {
+  const local = channel.url.match(/^\$\{replace\}\/(radio-[\w-]+)$/)
+  const base = '${replace}/' + (String(mode) === '2' ? 'proxy/' : 'relay/')
+  const web = channel.url.match(/^\$\{replace\}\/proxy\/(cr-[0-9a-f]{16}(?:\.[a-z0-9]+)?)$/)
+  if (web) return base + web[1]
+  const builtinRef = local?.[1]
+  if (builtinRef) {
+    const extension = resolverFor(builtinRef)?.radioExtension?.(builtinRef)
+    if (extension) return base + builtinRef + '.' + extension
+  }
+  const proxyId = channel.url.match(/^\$\{replace\}\/(?:proxy|relay)\/cp-([0-9a-f]{16})\.m3u8$/)?.[1]
+  for (const sourceId of channel.sourceIds || []) {
+    if (!sourceId.startsWith('ext:')) continue
+    const ref = 'cr-' + (proxyId || proxyRefFor(sourceId.slice(4), channel.name, channel.url).slice(3))
+    const source = externalSourceManager.radioSource(ref)
+    if (!source) continue
+    const ext = new URL(source.url).pathname.match(/\.(m3u8|mp3|aac|m4a|ogg|opus|wav|flac)$/i)?.[1]?.toLowerCase() || ''
+    return base + ref + (ext ? '.' + ext : '')
+  }
+  return channel.url
+}
+
+// 只改广播的媒体地址；电视条目、原始顺序、播放器选项按原样保留。
+// identity-url 让配置档仍用原频道 ID 做移动、重命名和排序，分发前会统一移除。
+function rewriteRadioPlaylistUrls(content, mode) {
+  if (!content.includes(' radio="true"')) return content
+  const lines = content.split('\n')
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    if (!line.startsWith('#EXTINF:') || !line.includes(' radio="true"')) continue
+    const name = extinfName(line)
+    const attrs = line.slice(0, line.length - name.length)
+    if (!attrs.includes(' radio="true"')) continue
+    const { urlIndex } = collectOptsUntilUrl(lines, i)
+    if (urlIndex < 0) continue
+    const url = lines[urlIndex].trim()
+    const sourceIds = attrs.match(/ source-ids="([^"]*)"/)?.[1].split(';') || []
+    const next = radioModeUrl({ url, name: name.trim(), sourceIds }, mode)
+    if (next !== url) {
+      if (!attrs.includes(' identity-url="')) {
+        lines[i] = line.replace(/^(#EXTINF:[^\s,]+)/, '$1 identity-url="' + encodeURIComponent(url) + '"')
+      }
+      lines[urlIndex] = next
+    }
+    i = urlIndex
+  }
+  return lines.join('\n')
+}
+
 function interfaceStr(url, headers, urlUserId, urlToken, profile, accessPrefix, relay) {
 
   let result = {
     content: null,
     contentType: 'text/plain;charset=UTF-8'
   }
+  const radioMode = url !== '/txt' && url !== '/playback.xml' && ['1', '2'].includes(String(relay))
   let fileName = dataPath("interface.txt")
   switch (url) {
     case "/playback.xml":
@@ -192,6 +244,7 @@ function interfaceStr(url, headers, urlUserId, urlToken, profile, accessPrefix, 
     result.content = readFileSync(fileName)
     if (url !== "/txt" && url !== "/playback.xml") {
       result.content = markFengshowsLiveUrls(String(result.content))
+      if (radioMode) result.content = rewriteRadioPlaylistUrls(result.content, relay)
     }
   } catch (error) {
     printRed("文件获取失败")
@@ -231,7 +284,7 @@ function interfaceStr(url, headers, urlUserId, urlToken, profile, accessPrefix, 
         getKeywordGroupRules().length > 0 ||
         hasSourceFallbackGroups())) {
         printGrey("应用播放列表自定义配置")
-        const groups = parseInterfaceTxt({ forTxt: url === "/txt" })
+        const groups = parseInterfaceTxt({ forTxt: url === "/txt", content: radioMode ? result.content : undefined })
         const configuredGroups = applyConfig(groups, config)
         result.content = url === "/txt" ? generateTxt(configuredGroups) : generateM3u8(configuredGroups)
       }

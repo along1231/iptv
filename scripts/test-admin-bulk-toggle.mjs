@@ -106,7 +106,7 @@ function bulkHarness(initialState, { post } = {}) {
   }
   const h = { statuses, posts, reloads, externalRenders, modal, body, elements, opener, closeButton, toolButtons, nextReloadState: null }
   const context = vm.createContext({
-    document,
+    selectedSourceTab: 1, document,
     setTimeout: fn => fn(),
     showStatus: (message, type) => statuses.push([message, type]),
     extractorPost: async request => {
@@ -210,6 +210,19 @@ await check('快照与分节：缺省内置源视为开，分类顺序同卡片�
   ])
   // 没有模块的分类不出空节
   assert.deepEqual(plain(h.context.extractorBulkSections({ modules: [{ id: 'x', name: 'X', category: 'live' }] })).map(s => s.id), ['live', '__builtin'])
+})
+
+await check('广播与电视页分别批量操作，只提交当前页的模块', async () => {
+  const state = stateOf()
+  state.modules.push({ id: 'radio-hongkong', name: '香港广播', category: 'radio', enabled: true })
+  const h = bulkHarness(state)
+  assert.ok(!h.context.extractorBulkSections(state).some(section => section.id === 'radio'))
+  h.context.selectedSourceTab = 3
+  h.context.openExtractorBulk()
+  assert.deepEqual(plain(h.context.extractorBulkSections(state)).map(section => section.id), ['radio'])
+  h.context.setExtractorBulkAll(false)
+  await h.context.applyExtractorBulk()
+  assert.deepEqual(h.posts, [{ action: 'bulkToggle', modules: { 'radio-hongkong': false } }])
 })
 
 await check('市县台（county）从免账号拆出、紧跟其后单独一节；节内全开只写这些模块各自的开关', async () => {

@@ -1,6 +1,8 @@
 import http from "node:http"
 import { localRequestHandlerFor, registerRefResolver, resolverFor, shutdownModules } from './extractors/registry.js'
 import { pipeFlv } from './utils/flvProxy.js'
+import { requiredProxyFetch } from './utils/outboundProxy.js'
+import { serveRadioMode, customRadioFetch } from './utils/radioPlayback.js'
 import { sendLocalMediaResponse } from './utils/localMediaResponse.js'
 import { readFileSync, mkdirSync, existsSync, statSync } from "node:fs"
 import { createRequire } from "node:module"
@@ -519,7 +521,7 @@ async function handleRequest(req, res) {
         let result
 
         if (data.action === 'save') {
-          result = await saveExternalSourcesAPI(data.sources)
+          result = await saveExternalSourcesAPI(data.sources, data.detectDirectIndex)
         } else if (data.action === 'add') {
           result = addExternalSourceAPI(data.source)
         } else if (data.action === 'remove') {
@@ -544,7 +546,9 @@ async function handleRequest(req, res) {
             const channels = []
             // 开了「经网络代理转发」且有生效代理：会由服务器转发的频道也经代理探，否则全被误判失效
             const viaProxy = sourceUsesProxy(src) && Boolean(outboundProxyUrl())
-            const probeFetch = url => (viaProxy && proxiableUrl(url) ? { fetchImpl: customSourceFetch } : {})
+            const strictWebProxy = sourceUsesProxy(src) && Boolean(src.webUrl) && src.mode !== 'subscription'
+            const probeFetch = url => strictWebProxy ? { fetchImpl: requiredProxyFetch }
+              : (viaProxy && proxiableUrl(url) ? { fetchImpl: customSourceFetch } : {})
             if (src.mode === 'subscription' && Array.isArray(src.parsedChannels)) {
               // 按播放器会发的 UA 探：频道自带的优先，其次订阅源里填的（issue #170）
               const sourceUa = cleanUserAgent(src.userAgent)
@@ -1239,6 +1243,42 @@ async function handleRequest(req, res) {
     routeUrl = `${webEntry[1]}/proxy/${ref}.m3u8`
   }
 
+  // 广播可能是连续音频，不能把每个入口都当成 HLS 清单。只接受已登记的频道引用。
+  const webProxy = routeUrl.split('?')[0].match(/\/(relay|proxy)\/cp-([a-f0-9]{16})\.m3u8$/)
+  if (webProxy) {
+    const ref = 'cr-' + webProxy[2]
+    const source = externalSourceManager.radioSource(ref)
+    if (source?.requireProxy) {
+      await serveRadioMode(req, res, { ref, source, mode: webProxy[1] })
+      return
+    }
+  }
+  const ordinaryRadio = routePath.match(/^(\/(?:[^/]+\/[^/]+\/)?)(radio-[\w-]+)$/)
+  if (ordinaryRadio) {
+    const owner = resolverFor(ordinaryRadio[2])
+    if (owner?.category === 'radio' && getModuleConfig(owner.id).useProxy === true) {
+      const ref = ordinaryRadio[2]
+      res.writeHead(302, { Location: accessPrefix + ordinaryRadio[1] + 'proxy/' + ref + '.' + owner.radioExtension(ref),
+        'Cache-Control': 'no-store' })
+      res.end()
+      return
+    }
+  }
+  const radioEntry = routePath.match(/^(?:\/[^/]+\/[^/]+)?\/(relay|proxy)\/(radio-[\w-]{1,57}|cr-[0-9a-f]{16})(?:\.(m3u8|aac|mp3|m4a|ogg|opus|wav|flac))?$/i)
+  if (radioEntry) {
+    const [, mode, ref, extension] = radioEntry
+    const module = resolverFor(ref)
+    const source = ref.startsWith('cr-') && externalSourceManager.radioSource(ref)
+    if (!source && (module?.category !== 'radio' || !getExtractorManager().isModuleEnabled(module))) {
+      res.writeHead(404)
+      res.end('该广播频道未启用')
+      return
+    }
+    await serveRadioMode(req, res, { ref, module, source, mode, extension,
+      config: module ? getModuleConfig(module.id) : {} })
+    return
+  }
+
   // 清单直出兼容模式（issue #98）：/relay/<pid> 的 relay 段必须在下方「/userId/token」
   // 两段解析之前剥掉，否则会被误当成账号注入前缀（relay 当 userId、pid 当 token）返回订阅内容。
   // 支持前面带账号注入段的组合（/userId/token/relay/<pid>），剥掉 relay 段、其余原样保留。
@@ -1286,12 +1326,15 @@ async function handleRequest(req, res) {
       return
     }
     const owner = resolverFor(target.pid)
-    if (owner?.playbackRequiresEnabled && !getExtractorManager().isModuleEnabled(owner)) {
+    const isCustomRadio = target.pid.startsWith('cr-')
+    const radioSource = isCustomRadio && externalSourceManager.radioSource(target.pid)
+    if ((isCustomRadio && !radioSource) ||
+        ((owner?.playbackRequiresEnabled || owner?.category === 'radio') && !getExtractorManager().isModuleEnabled(owner))) {
       res.writeHead(404)
       res.end()
       return
     }
-    const fetchMedia = owner?.fetchProxyMedia
+    const fetchMedia = radioSource ? customRadioFetch(radioSource) : owner?.fetchProxyMedia
       ? (url, options) => owner.fetchProxyMedia(target.pid, getModuleConfig(owner.id), url, options)
       : undefined
     if (method === "HEAD") {
@@ -1405,6 +1448,14 @@ async function handleRequest(req, res) {
     urlToken = migu.token || ""
   }
 
+  // .m3u 是订阅文件名。未知文件不交给频道解析或通用 HEAD 探测。
+  const routeUrlPath = routeUrl.split('?')[0]
+  if (routeUrlPath.endsWith('.m3u') && routeUrlPath !== '/interface.m3u') {
+    res.writeHead(404)
+    res.end()
+    return
+  }
+
   // OPTIONS 与 HEAD 一律本地回答，绝不触发上游解析链。
   //
   // 播放器打开订阅时会把里面每个频道逐一探活一遍（APTV 实测：约 2 秒内 HEAD 了 29 个频道）。
@@ -1417,7 +1468,8 @@ async function handleRequest(req, res) {
   // 长度本就在变，HEAD 报的值与随后 GET 的必然对不上，为这个达不到的准确性付整条解析链
   // 的代价并不划算。
   if (method === "OPTIONS" || method === "HEAD") {
-    const streamType = resolverFor(routeUrl.split('?')[0].replace(/^\//, ''))?.streamType
+    const probePath = routeUrl.split('?')[0]
+    const streamType = resolverFor(probePath.replace(/^\//, ''))?.streamType
     if (relayMode || proxyMode) {
       const client = clientOf(req)
       const kind = proxyMode ? '全代理' : '兼容'
@@ -1430,7 +1482,8 @@ async function handleRequest(req, res) {
     res.writeHead(200, {
       // 清单直出地址按 HLS 类型应答 HEAD 探测：部分播放器播放前先 HEAD 判断类型，
       // 回 application/json 会被判定「不可播放」（issue #98）
-      'Content-Type': (relayMode || proxyMode) ? 'application/vnd.apple.mpegurl' : streamType === 'flv' ? 'video/x-flv' : 'application/json;charset=UTF-8',
+      'Content-Type': (relayMode || proxyMode) ? 'application/vnd.apple.mpegurl' : streamType === 'flv' ? 'video/x-flv'
+        : 'application/json;charset=UTF-8',
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, POST, HEAD, OPTIONS',
       'Access-Control-Allow-Headers': '*'
@@ -1450,13 +1503,10 @@ async function handleRequest(req, res) {
   }
 
   // /interface.m3u 是 /m3u 的别名：内容相同，只为带 .m3u 后缀——某些客户端（如飞牛影视）按后缀校验订阅地址，/m3u 会被拒
-  const interfaceList = "/,/interface.txt,/interface.m3u,/m3u,/txt,/playback.xml"
-
-  // 去掉 query（含 ?profile=）后再做接口匹配/选盘；profile 走 profileParam 传入，回看/EPG 自动沿用同一 base
-  const routeUrlPath = routeUrl.split('?')[0]
+  const interfaceList = ["/", "/interface.txt", "/interface.m3u", "/m3u", "/txt", "/playback.xml"]
 
   // 接口
-  if (interfaceList.indexOf(routeUrlPath) !== -1) {
+  if (interfaceList.includes(routeUrlPath)) {
     // 用户绑定了档则用其绑定档（一人一内容），否则用 query 的 ?profile=
     const effectiveProfile = (currentUser && currentUser.profile) ? currentUser.profile : profileParam
     // 兼容版订阅（issue #98）：?relay=1 输出 /relay/<pid> 清单直出路径；?relay=2 输出

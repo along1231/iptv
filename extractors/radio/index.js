@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs'
-import { audio, closeAudio, programmes, stream } from './runtime.js'
+import { getModuleConfig } from '../../utils/extractorManager.js'
+import { audio, closeAudio, fetchRadioMedia, programmes, stream } from './runtime.js'
 
 const readJson = file => JSON.parse(readFileSync(new URL(file, import.meta.url), 'utf8'))
 const stations = { ...readJson('./regional_stations.json'), ...readJson('./tv_radio_stations.json') }
@@ -28,7 +29,7 @@ function regionalModule(region, slug) {
   const epg = guideEntries.length ? {
     id, days: 2,
     channels: () => guideEntries.map(([key, station]) => ({ key, ref: 'radio-' + key, name: station.name })),
-    programmes: (key, day, options) => byRef.has('radio-' + key) ? programmes(key, day, options) : Promise.resolve([]),
+    programmes: (key, day, options) => byRef.has('radio-' + key) ? programmes(key, day, options, getModuleConfig(id).useProxy === true) : Promise.resolve([]),
   } : undefined
   const icons = new Set(entries.map(([, station]) => station.icon).filter(Boolean))
   function local(path) {
@@ -43,18 +44,29 @@ function regionalModule(region, slug) {
     description: region + '地区官方广播，共 ' + entries.length + ' 个频率。',
     capabilities: { cache: 'disk', resolve: true, epg: Boolean(epg), catchup: false },
     catalogVersion: 1, defaultRefreshMinutes: 1440, refreshConfigurable: false,
-    refreshDescription: '播放时向电台取址，节目单随订阅刷新。', configSchema: [],
+    refreshDescription: '播放时向电台取址，节目单随订阅刷新。', configSchema: [
+      { key: 'useProxy', label: '经网络代理转发', type: 'boolean', default: false,
+        hint: '本地区电台取址和播放使用「设置 → 网络代理」配置的出口。' },
+    ],
+    configSavedNotice: '配置已保存，下次取址和播放时生效。',
     async fetch() { return { groups: [{ name: group, dataList: channels }], meta: { skipped: [], warnings: [] } } },
     shutdown: closeAudio,
+    fetchProxyMedia: fetchRadioMedia,
     claimsRef: ref => byRef.has(ref),
-    async resolve(ref) {
+    radioExtension(ref) {
+      const key = byRef.get(ref)
+      if (stations[key]?.relay) return 'mp3'
+      if (/^(?:ner-|bcc-|icrt-fm$|ufo-fm$)/.test(key)) return 'aac'
+      return 'm3u8'
+    },
+    async resolve(ref, { config = {} } = {}) {
       try {
-        if (byRef.has(ref)) return { url: await stream(byRef.get(ref)) }
+        if (byRef.has(ref)) return { url: await stream(byRef.get(ref), config.useProxy === true) }
       } catch { return { url: '', status: 502, desc: '暂未取得官方广播地址' } }
       return { url: '', status: 404, desc: '未知广播频率' }
     },
     claimsLocalPath: path => Boolean(local(path)),
-    async handleLocalRequest({ path, method }) {
+    async handleLocalRequest({ path, method, config = {} }) {
       const match = local(path)
       if (!match) return null
       if (match.icon) {
@@ -63,7 +75,7 @@ function regionalModule(region, slug) {
           headers: { 'Content-Type': mime[match.icon.split('.').at(-1)], 'Cache-Control': 'public, max-age=86400',
             'Content-Security-Policy': "default-src 'none'; sandbox" } }
       }
-      return audio(match.key, stations[match.key], method)
+      return audio(match.key, stations[match.key], method, config.useProxy === true)
     },
     epg,
   }

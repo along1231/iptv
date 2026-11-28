@@ -5,7 +5,7 @@
  * 本机起源站和 HTTP CONNECT 代理，频道地址用不存在的域名（cdn.example）——请求能到源站就说明确实走了代理。
  *
  * 不变量：
- *  - 只有用户自己加的订阅源、直连源认这个开关；抓取模式、内置「精选频道」订阅勾了也不算；
+ *  - 用户添加的订阅、直连和网页抓取源支持这个开关；内置「精选频道」订阅除外；
  *  - 只改写公网 http(s) 频道；局域网地址、rtp/udp、FLV 照旧原样输出；
  *  - 引用按「源 + 台名 + 剥掉签名参数的地址」算：订阅换签名引用不变，播放时取最新地址；
  *  - 改写后的频道身份仍按原地址算（identity-url），用户的隐藏 / 改名 / 排序不丢；
@@ -192,15 +192,19 @@ try {
     assert.equal(mgr.sources.sources[0].parsedChannels.length, 7)
   })
 
-  await check('频道引用：公网 http(s) 才带；没勾的源、抓取模式、内置精选频道都不带', () => {
+  await check('频道引用：公网 http(s) 才带；网页抓取带稳定入口，未勾选和内置精选频道不带', () => {
     const ch = channelsByName()
-    for (const name of ['代理台', '回看台', '裸流台', '拒绝台', '直连台A']) assert.ok(cp.claimsRef(ch[name].proxyRef), name)
-    for (const name of ['FLV台', '局域网台', '组播台', '直连台', '抓取台']) assert.equal(ch[name].proxyRef, undefined, name)
+    for (const name of ['代理台', '回看台', '裸流台', '拒绝台', '直连台A', '抓取台']) assert.ok(cp.claimsRef(ch[name].proxyRef), name)
+    for (const name of ['FLV台', '局域网台', '组播台', '直连台']) assert.equal(ch[name].proxyRef, undefined, name)
+    const web = ch['抓取台']
+    assert.equal(web.requireProxy, true)
+    assert.equal(web.proxyRef, cp.proxyRefFor('fet00001', web.name, 'http://page.example/'))
+    assert.equal(mgr.radioSource('cr-' + web.proxyRef.slice(3)).url, web.url)
     // 内置精选频道：开关不生效（它没有卡片，内置的出站不让用户改）
     if (ch['精选台']) assert.equal(ch['精选台'].proxyRef, undefined)
     // 原地址照旧留在 url 上：去重、身份、失效检测都还按它
     assert.equal(ch['代理台'].url, 'http://cdn.example/live/master.m3u8?id=1&token=T1')
-    assert.deepEqual(mgr.proxiedChannels().map(c => c.name).sort(), ['代理台', '回看台', '拒绝台', '直连台A', '裸流台'].sort())
+    assert.deepEqual(mgr.proxiedChannels().map(c => c.name).sort(), ['代理台', '回看台', '拒绝台', '直连台A', '抓取台', '裸流台'].sort())
     assert.equal(mgr.proxiedChannels().find(c => c.name === '代理台').sourceName, '海外订阅')
   })
 
@@ -365,7 +369,7 @@ try {
     assert.equal(direct.playURL, 'http://cdn.example/live/master.m3u8?id=1&token=T2&playseek=a-b')
   })
 
-  // ---- 后台网页播放（web 模式）：此时 直连台A 已关掉开关，没勾的订阅、抓取台本来就没有引用 ----
+  // ---- 后台网页播放（web 模式）：此时 直连台A 已关掉开关，没勾的订阅本来就没有引用 ----
   const webByName = () => Object.fromEntries(mgr.webPlaybackChannels().map(c => [`${c.sourceName}/${c.name}`, c]))
   const DIRECT_A = 'http://cdn.example/live/media.m3u8?sign=a'
 
@@ -381,7 +385,7 @@ try {
     assert.equal(web['海外订阅/代理台'].useProxy, true)
     assert.equal(web['直连台A/直连台A'].ref, cp.proxyRefFor('dir00001', '直连台A', DIRECT_A))
     assert.equal(web['直连台A/直连台A'].useProxy, false)
-    assert.equal(web['抓取台/抓取台'].ref, cp.proxyRefFor('fet00001', '抓取台', 'http://cdn.example/live/fetch.m3u8'))
+    assert.equal(web['抓取台/抓取台'].ref, cp.proxyRefFor('fet00001', '抓取台', 'http://page.example/'))
     // 名单不改订阅里写的地址：没勾的频道照旧没有 proxyRef
     assert.equal(channelsByName()['直连台A'].proxyRef, undefined)
     assert.ok(!mgr.proxiedChannels().some(c => c.name === '直连台A'))
@@ -463,7 +467,7 @@ try {
     const missing = await resolver.resolve(web['抓取台/抓取台'].ref, { query: {}, web: true })
     assert.equal(missing.status, 502)
     assert.equal(missing.silent, true)
-    assert.match(missing.desc, /^自定义源「抓取台」 取清单失败：对方回 HTTP 404$/)
+    assert.match(missing.desc, /^自定义源「抓取台」 经网络代理取清单失败：对方回 HTTP 404$/)
     const denied = await resolver.resolve(web['海外订阅/拒绝台'].ref, { query: {}, web: true })
     assert.equal(denied.status, 502)
     assert.match(denied.desc, /经网络代理取清单失败.*HTTP 403/)
