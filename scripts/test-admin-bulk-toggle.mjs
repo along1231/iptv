@@ -148,7 +148,7 @@ await check('分类元数据抽成 extractorCategories：卡片区与弹窗共�
   assert.ok(start > 0)
   const block = admin.slice(start, admin.indexOf('];', start))
   const ids = [...block.matchAll(/id: '([^']+)'/g)].map(match => match[1])
-  assert.deepEqual(ids, ['account', 'live', 'standard', 'overseas'])
+  assert.deepEqual(ids, ['account', 'live', 'standard', 'radio', 'overseas'])
   const render = functionSource('renderExtractors')
   assert.match(render, /const categories = extractorCategories\(\);/)
   assert.doesNotMatch(render, /const categories = \[/, '分类只能有一份')
@@ -158,7 +158,7 @@ await check('分类元数据抽成 extractorCategories：卡片区与弹窗共�
   const context = vm.createContext({})
   vm.runInContext(functionSource('extractorCategories'), context)
   assert.deepEqual(plain(context.extractorCategories()).map(c => [c.id, c.title]),
-    [['account', '账号与授权'], ['live', '网络直播平台'], ['standard', '免账号模块'], ['overseas', '海外']])
+    [['account', '账号与授权'], ['live', '网络直播平台'], ['standard', '免账号模块'], ['radio', '广播'], ['overseas', '海外']])
 })
 
 await check('弹窗标记沿用提醒列表的模式：dialog 语义、关闭按钮、Esc 与遮罩关闭、提示文案', () => {

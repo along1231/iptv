@@ -1093,6 +1093,7 @@ try {
     assert.deepEqual(
       listModules().filter(module => module.defaultEnabled === false).map(module => module.id).sort(),
       [
+        ...modules.filter(module => module.category === 'radio').map(module => module.id),
         ...modules.filter(module => module.category === 'overseas').map(module => module.id),
         'shandong-counties',
         'bestv-fj',
@@ -1391,7 +1392,7 @@ try {
     const gdy = optIn.filter(id => id.startsWith('guangdianyun-'))
     assert.ok(gdy.length >= 20, '市县台各省模块都默认关闭')
     assert.equal(listModules().filter(module => module.id.startsWith('guangdianyun-')).length, gdy.length)
-    assert.deepEqual(optIn.filter(id => !id.startsWith('guangdianyun-')).sort(),
+    assert.deepEqual(optIn.filter(id => !id.startsWith('guangdianyun-') && getModule(id).category !== 'radio').sort(),
       ['bestv-fj', 'overseas', 'redbull', 'shandong-counties', 'tdm', 'websports', 'xumo', 'youtube-live'],
       '百视通因出口可用性差异默认关闭；WebSports 来自第三方赛事网站；其余默认关闭模块保持不变')
     const manager = newManager(undefined, { modules: {}, masterSwitchRetired: true })

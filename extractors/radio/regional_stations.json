@@ -1,0 +1,282 @@
+{
+  "radio1": {
+    "name": "香港電台第一台",
+    "region": "香港",
+    "icon": "radio1.svg"
+  },
+  "radio2": {
+    "name": "香港電台第二台",
+    "region": "香港",
+    "icon": "radio2.svg"
+  },
+  "radio3": {
+    "name": "香港電台第三台",
+    "region": "香港",
+    "icon": "radio3.svg"
+  },
+  "radio4": {
+    "name": "香港電台第四台",
+    "region": "香港",
+    "icon": "radio4.svg"
+  },
+  "radio5": {
+    "name": "香港電台第五台",
+    "region": "香港",
+    "icon": "radio5.svg"
+  },
+  "pth": {
+    "name": "香港電台普通話台",
+    "region": "香港",
+    "icon": "pth.svg"
+  },
+  "radiocnrhk": {
+    "name": "中央人民廣播電台香港之聲",
+    "region": "香港",
+    "icon": "radiocnrhk.svg"
+  },
+  "radiocmgrgb": {
+    "name": "中央廣播電視總台粵港澳大灣區之聲",
+    "region": "香港",
+    "icon": "radiocmgrgb.svg"
+  },
+  "gdtv-85": {
+    "name": "广东新闻广播",
+    "region": "广东",
+    "icon": "gdtv-85.png"
+  },
+  "gdtv-86": {
+    "name": "珠江经济台",
+    "region": "广东",
+    "icon": "gdtv-86.png"
+  },
+  "gdtv-87": {
+    "name": "音乐之声",
+    "region": "广东",
+    "icon": "gdtv-87.png"
+  },
+  "gdtv-88": {
+    "name": "交通之声",
+    "region": "广东",
+    "icon": "gdtv-88.png"
+  },
+  "gdtv-89": {
+    "name": "南方生活广播",
+    "region": "广东",
+    "icon": "gdtv-89.png"
+  },
+  "gdtv-90": {
+    "name": "城市之声",
+    "region": "广东",
+    "icon": "gdtv-90.png"
+  },
+  "gdtv-92": {
+    "name": "文体广播",
+    "region": "广东",
+    "icon": "gdtv-92.png"
+  },
+  "gdtv-98": {
+    "name": "珠江之声",
+    "region": "广东",
+    "icon": "gdtv-98.png"
+  },
+  "tdm-fm1007": {
+    "name": "澳門電台 FM100.7",
+    "region": "澳门",
+    "icon": "tdm-fm1007.png"
+  },
+  "tdm-fm98": {
+    "name": "Rádio Macau FM98",
+    "region": "澳门",
+    "icon": "tdm-fm98.png"
+  },
+  "rti-3": {
+    "name": "央廣 · 華語線上收聽",
+    "region": "台湾",
+    "icon": "rti.png"
+  },
+  "rti-6": {
+    "name": "央廣 · 台客粵語和歐美外語Live",
+    "region": "台湾",
+    "icon": "rti.png"
+  },
+  "rti-5": {
+    "name": "央廣 · 亞洲語言Live",
+    "region": "台湾",
+    "icon": "rti.png"
+  },
+  "ner-1": {
+    "name": "教育電臺 · 臺北總臺 FM",
+    "region": "台湾",
+    "icon": "ner.jpg"
+  },
+  "ner-2": {
+    "name": "教育電臺 · 臺北總臺 AM",
+    "region": "台湾",
+    "icon": "ner.jpg"
+  },
+  "ner-4": {
+    "name": "教育電臺 · 彰化分臺 FM",
+    "region": "台湾",
+    "icon": "ner.jpg"
+  },
+  "ner-5": {
+    "name": "教育電臺 · 高雄分臺 FM",
+    "region": "台湾",
+    "icon": "ner.jpg"
+  },
+  "ner-6": {
+    "name": "教育電臺 · 臺東分臺 FM-1",
+    "region": "台湾",
+    "icon": "ner.jpg"
+  },
+  "ner-7": {
+    "name": "教育電臺 · 臺東分臺 FM-2",
+    "region": "台湾",
+    "icon": "ner.jpg"
+  },
+  "ner-8": {
+    "name": "教育電臺 · 花蓮分臺 FM-1",
+    "region": "台湾",
+    "icon": "ner.jpg"
+  },
+  "ner-9": {
+    "name": "教育電臺 · 花蓮分臺 FM-2",
+    "region": "台湾",
+    "icon": "ner.jpg"
+  },
+  "tbs-fm": {
+    "name": "臺北廣播電臺 FM93.1",
+    "region": "台湾",
+    "icon": "tbs.png"
+  },
+  "tbs-am": {
+    "name": "臺北廣播電臺 AM1134",
+    "region": "台湾",
+    "icon": "tbs.png"
+  },
+  "pbs-pbs": {
+    "name": "警廣 · 全國治安交通網",
+    "region": "台湾",
+    "icon": "pbs.png"
+  },
+  "pbs-tps": {
+    "name": "警廣 · 臺北分臺",
+    "region": "台湾",
+    "icon": "pbs.png"
+  },
+  "pbs-scs": {
+    "name": "警廣 · 新竹分臺",
+    "region": "台湾",
+    "icon": "pbs.png"
+  },
+  "pbs-tcs": {
+    "name": "警廣 · 臺中分臺",
+    "region": "台湾",
+    "icon": "pbs.png"
+  },
+  "pbs-tns": {
+    "name": "警廣 · 臺南分臺",
+    "region": "台湾",
+    "icon": "pbs.png"
+  },
+  "pbs-kss": {
+    "name": "警廣 · 高雄分臺",
+    "region": "台湾",
+    "icon": "pbs.png"
+  },
+  "pbs-els": {
+    "name": "警廣 · 宜蘭分臺",
+    "region": "台湾",
+    "icon": "pbs.png"
+  },
+  "pbs-hls": {
+    "name": "警廣 · 花蓮分臺",
+    "region": "台湾",
+    "icon": "pbs.png"
+  },
+  "pbs-tts": {
+    "name": "警廣 · 臺東分臺",
+    "region": "台湾",
+    "icon": "pbs.png"
+  },
+  "hakka-main": {
+    "name": "講客廣播電臺",
+    "region": "台湾",
+    "icon": "hakka.png"
+  },
+  "voh-fm": {
+    "name": "漢聲廣播電臺 FM",
+    "region": "台湾",
+    "icon": "voh.png"
+  },
+  "voh-am": {
+    "name": "漢聲廣播電臺 AM",
+    "region": "台湾",
+    "icon": "voh.png"
+  },
+  "kbs-fm": {
+    "name": "高雄廣播電臺 FM94.3",
+    "region": "台湾",
+    "icon": "kbs.png"
+  },
+  "kbs-am": {
+    "name": "高雄廣播電臺 AM1089",
+    "region": "台湾",
+    "icon": "kbs.png"
+  },
+  "icrt-fm": {
+    "name": "ICRT 台北國際社區廣播電台",
+    "region": "台湾",
+    "icon": "icrt.png"
+  },
+  "bcc-news": {
+    "name": "中廣新聞網",
+    "region": "台湾",
+    "icon": "bcc.png"
+  },
+  "bcc-pop": {
+    "name": "中廣流行網",
+    "region": "台湾",
+    "icon": "bcc.png"
+  },
+  "bcc-music": {
+    "name": "中廣音樂網",
+    "region": "台湾",
+    "icon": "bcc.png"
+  },
+  "bcc-country": {
+    "name": "中廣鄉親網",
+    "region": "台湾",
+    "icon": "bcc.png"
+  },
+  "bcc-531": {
+    "name": "中廣 i go 531",
+    "region": "台湾",
+    "icon": "bcc.png"
+  },
+  "ufo-fm": {
+    "name": "飛碟電台 FM92.1",
+    "region": "台湾",
+    "icon": "ufo.png"
+  },
+  "kiss-fm": {
+    "name": "KISS Radio 大眾廣播 FM99.9",
+    "region": "台湾",
+    "icon": "kiss.png"
+  },
+  "metro-info": {
+    "name": "新城知訊台 FM99.7",
+    "region": "香港",
+    "icon": "metro-info.svg"
+  },
+  "metro-finance": {
+    "name": "新城財經台 FM104",
+    "region": "香港",
+    "icon": "metro-finance.svg"
+  },
+  "metro-plus": {
+    "name": "新城采訊台 AM1044",
+    "region": "香港",
+    "icon": "metro-plus.svg"
+  }
+}

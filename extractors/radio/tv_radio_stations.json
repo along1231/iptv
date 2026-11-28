@@ -1,0 +1,821 @@
+{
+  "cn-gansu-7": {
+    "provider": "gansu",
+    "id": "7",
+    "name": "甘肃交通广播",
+    "region": "甘肃",
+    "page": "https://www.gstv.com.cn/",
+    "logo": "https://www.gstv.com.cn/gansu-logo.png"
+  },
+  "cn-gansu-8": {
+    "provider": "gansu",
+    "id": "8",
+    "name": "甘肃农村广播",
+    "region": "甘肃",
+    "page": "https://www.gstv.com.cn/",
+    "logo": "https://www.gstv.com.cn/gansu-logo.png"
+  },
+  "cn-gansu-9": {
+    "provider": "gansu",
+    "id": "9",
+    "name": "甘肃新闻综合广播",
+    "region": "甘肃",
+    "page": "https://www.gstv.com.cn/",
+    "logo": "https://www.gstv.com.cn/gansu-logo.png"
+  },
+  "cn-shaoxing-56": {
+    "provider": "shaoxing",
+    "id": "56",
+    "name": "绍兴 FM93.6新闻综合频率",
+    "region": "浙江",
+    "page": "https://www.shaoxing.com.cn/",
+    "logo": "https://img.shaoxing.com.cn/a/thumb/10001/201907/8bce752c2c560ddf9537fed0bd371476.jpg!w150_h150.jpg"
+  },
+  "cn-shaoxing-57": {
+    "provider": "shaoxing",
+    "id": "57",
+    "name": "绍兴 FM94.1绍兴交通频率",
+    "region": "浙江",
+    "page": "https://www.shaoxing.com.cn/",
+    "logo": "https://img.shaoxing.com.cn/a/thumb/10001/201907/6709b54085db7ffe2873bba023b6c31d.jpg!w150_h150.jpg"
+  },
+  "cn-shaoxing-79": {
+    "provider": "shaoxing",
+    "id": "79",
+    "name": "绍兴 FM103.5戏曲音乐频率",
+    "region": "浙江",
+    "page": "https://www.shaoxing.com.cn/",
+    "logo": "https://img.shaoxing.com.cn/a/thumb/10001/202108/6a43f2ced38bf533ca049fdf029beb59.jpg!w150_h150.jpg"
+  },
+  "cn-fuzhou-694": {
+    "provider": "fuzhou",
+    "id": "694",
+    "name": "福州广播电视台新闻广播",
+    "region": "福建",
+    "page": "https://www.zohi.tv/",
+    "logo": "https://www.zohi.tv/a/thumb/10001/202411/097a03a4e21f457babc28b612ff28335.jpeg!w150_h150.jpeg"
+  },
+  "cn-fuzhou-690": {
+    "provider": "fuzhou",
+    "id": "690",
+    "name": "福州广播电视台交通之声",
+    "region": "福建",
+    "page": "https://www.zohi.tv/",
+    "logo": "https://www.zohi.tv/a/thumb/10001/202411/4524cf34ef82cb2e62210ee095f893ba.jpeg!w150_h150.jpeg"
+  },
+  "cn-fuzhou-686": {
+    "provider": "fuzhou",
+    "id": "686",
+    "name": "福州广播电视台左海之声",
+    "region": "福建",
+    "page": "https://www.zohi.tv/",
+    "logo": "https://www.zohi.tv/a/thumb/10001/202411/fff2786bb00aa1b86f70659c3cf2d018.jpeg!w150_h150.jpeg"
+  },
+  "cn-putian-7": {
+    "provider": "putian",
+    "id": "7",
+    "name": "莆田广播 FM93.7",
+    "region": "福建",
+    "page": "https://www.ptbtv.com/"
+  },
+  "cn-putian-8": {
+    "provider": "putian",
+    "id": "8",
+    "name": "莆田广播 FM103.0",
+    "region": "福建",
+    "page": "https://www.ptbtv.com/"
+  },
+  "cn-geermu-3": {
+    "provider": "geermu",
+    "id": "3",
+    "name": "格尔木广播 FM96.3",
+    "region": "青海",
+    "page": "https://grmapp.geermurmt.cn/application/tenma01ds_tvradio/view/h5/#/?isnewjs=1&type=2",
+    "logo": "https://grmapposs.geermurmt.cn/tianma/2025/01/08/A07C35BB14D82B66A71709F7D7250C36.png"
+  },
+  "cn-haidong-2": {
+    "provider": "haidong",
+    "id": "2",
+    "name": "海东新闻综合广播",
+    "region": "青海",
+    "page": "https://hdapp.hdhhy.cn/application/tenma01ds_tvradio/view/h5/#/?isnewjs=1&type=2",
+    "logo": "https://oss.hdhhy.cn/tianma/2026/04/13/09E8D6FA2646E542A6A007B862060E1E.png"
+  },
+  "cn-guangzhou-962": {
+    "provider": "guangzhou",
+    "id": "962",
+    "name": "广州新闻资讯广播",
+    "region": "广东",
+    "page": "https://huacheng.gz-cmc.com/",
+    "logo": "https://huacheng.gz-cmc.com/image/site/icon.png"
+  },
+  "cn-guangzhou-1061": {
+    "provider": "guangzhou",
+    "id": "1061",
+    "name": "广州经济交通广播",
+    "region": "广东",
+    "page": "https://huacheng.gz-cmc.com/",
+    "logo": "https://huacheng.gz-cmc.com/image/site/icon.png"
+  },
+  "cn-guangzhou-1027": {
+    "provider": "guangzhou",
+    "id": "1027",
+    "name": "广州金曲音乐广播",
+    "region": "广东",
+    "page": "https://huacheng.gz-cmc.com/",
+    "logo": "https://huacheng.gz-cmc.com/image/site/icon.png"
+  },
+  "cn-guangzhou-88": {
+    "provider": "guangzhou",
+    "id": "88",
+    "name": "广州青少年广播",
+    "region": "广东",
+    "page": "https://huacheng.gz-cmc.com/",
+    "logo": "https://huacheng.gz-cmc.com/image/site/icon.png"
+  },
+  "cn-shaanxi-fm1066": {
+    "provider": "shaanxi",
+    "id": "fm1066",
+    "name": "陕西新闻广播 FM106.6",
+    "region": "陕西",
+    "page": "http://www.snrtv.com/snrtv_gbzb/index.html#fm1066",
+    "guide": "https://qidian.sxtvs.com/api/v3/program/radio?channel=101",
+    "logo": "http://res.cnwest.com/t/site/10001/663789250d35fb30006597dcddc4be8b/assets/snrtv2019/index/images/favicon.ico",
+    "icon": "shaanxi.png"
+  },
+  "cn-shaanxi-fm896": {
+    "provider": "shaanxi",
+    "id": "fm896",
+    "name": "陕西经济广播-汽车调频 FM89.6",
+    "region": "陕西",
+    "page": "http://www.snrtv.com/snrtv_gbzb/index.html#fm896",
+    "guide": "https://qidian.sxtvs.com/api/v3/program/radio?channel=102",
+    "logo": "http://res.cnwest.com/t/site/10001/663789250d35fb30006597dcddc4be8b/assets/snrtv2019/index/images/favicon.ico",
+    "icon": "shaanxi.png"
+  },
+  "cn-shaanxi-fm916": {
+    "provider": "shaanxi",
+    "id": "fm916",
+    "name": "陕西交通广播 FM91.6",
+    "region": "陕西",
+    "page": "http://www.snrtv.com/snrtv_gbzb/index.html#fm916",
+    "guide": "https://qidian.sxtvs.com/api/v3/program/radio?channel=103",
+    "logo": "http://res.cnwest.com/t/site/10001/663789250d35fb30006597dcddc4be8b/assets/snrtv2019/index/images/favicon.ico",
+    "icon": "shaanxi.png"
+  },
+  "cn-shaanxi-fm988": {
+    "provider": "shaanxi",
+    "id": "fm988",
+    "name": "陕西音乐广播 FM98.8",
+    "region": "陕西",
+    "page": "http://www.snrtv.com/snrtv_gbzb/index.html#fm988",
+    "guide": "https://qidian.sxtvs.com/api/v3/program/radio?channel=104",
+    "logo": "http://res.cnwest.com/t/site/10001/663789250d35fb30006597dcddc4be8b/assets/snrtv2019/index/images/favicon.ico",
+    "icon": "shaanxi.png"
+  },
+  "cn-shaanxi-am900": {
+    "provider": "shaanxi",
+    "id": "am900",
+    "name": "陕西农村广播 AM900",
+    "region": "陕西",
+    "page": "http://www.snrtv.com/snrtv_gbzb/index.html#am900",
+    "guide": "https://qidian.sxtvs.com/api/v3/program/radio?channel=105",
+    "logo": "http://res.cnwest.com/t/site/10001/663789250d35fb30006597dcddc4be8b/assets/snrtv2019/index/images/favicon.ico",
+    "icon": "shaanxi.png"
+  },
+  "cn-shaanxi-fm1055": {
+    "provider": "shaanxi",
+    "id": "fm1055",
+    "name": "陕西青少广播 FM105.5",
+    "region": "陕西",
+    "page": "http://www.snrtv.com/snrtv_gbzb/index.html#fm1055",
+    "guide": "https://qidian.sxtvs.com/api/v3/program/radio?channel=109",
+    "logo": "http://res.cnwest.com/t/site/10001/663789250d35fb30006597dcddc4be8b/assets/snrtv2019/index/images/favicon.ico",
+    "icon": "shaanxi.png"
+  },
+  "cn-shanxi-lzirmiy": {
+    "provider": "shanxi",
+    "id": "LZirMiy",
+    "name": "山西综合广播",
+    "region": "山西",
+    "page": "https://www.sxrtv.com/radio/index.shtml",
+    "guide": "https://apphhplushttps.sxrtv.com/epg/SXGB1.json",
+    "logo": "https://imagehhsitehttps.sxrtv.com/images/2023/1/6/2023161672970267634_33.png"
+  },
+  "cn-shanxi-shhimpz": {
+    "provider": "shanxi",
+    "id": "ShhImpz",
+    "name": "山西经济广播",
+    "region": "山西",
+    "page": "https://www.sxrtv.com/radio/index.shtml",
+    "guide": "https://apphhplushttps.sxrtv.com/epg/SXGB3.json",
+    "logo": "https://imagehhsitehttps.sxrtv.com/images/2023/1/6/2023161672970400919_33.png"
+  },
+  "cn-shanxi-zxd18m6": {
+    "provider": "shanxi",
+    "id": "ZXd18m6",
+    "name": "山西健康之声广播",
+    "region": "山西",
+    "page": "https://www.sxrtv.com/radio/index.shtml",
+    "guide": "https://apphhplushttps.sxrtv.com/epg/SXGB4.json",
+    "logo": "https://imagehhsitehttps.sxrtv.com/images/2023/1/6/2023161672970416095_33.png"
+  },
+  "cn-shanxi-e0fzonn": {
+    "provider": "shanxi",
+    "id": "E0fzoNN",
+    "name": "山西交通广播",
+    "region": "山西",
+    "page": "https://www.sxrtv.com/radio/index.shtml",
+    "guide": "https://apphhplushttps.sxrtv.com/epg/SXGB5.json",
+    "logo": "https://imagehhsitehttps.sxrtv.com/images/2023/1/6/2023161672970428678_33.png"
+  },
+  "cn-shanxi-b76x89s": {
+    "provider": "shanxi",
+    "id": "b76X89S",
+    "name": "山西农村广播",
+    "region": "山西",
+    "page": "https://www.sxrtv.com/radio/index.shtml",
+    "guide": "https://apphhplushttps.sxrtv.com/epg/SXGB6.json",
+    "logo": "https://imagehhsitehttps.sxrtv.com/images/2023/1/6/2023161672970442028_33.png"
+  },
+  "cn-shanxi-fsd88q5": {
+    "provider": "shanxi",
+    "id": "fSd88q5",
+    "name": "山西文艺广播",
+    "region": "山西",
+    "page": "https://www.sxrtv.com/radio/index.shtml",
+    "guide": "https://apphhplushttps.sxrtv.com/epg/SXGB7.json",
+    "logo": "https://imagehhsitehttps.sxrtv.com/images/2023/1/6/2023161672970453153_33.png"
+  },
+  "cn-shanxi-b69dq5s": {
+    "provider": "shanxi",
+    "id": "B69dQ5S",
+    "name": "山西音乐广播",
+    "region": "山西",
+    "page": "https://www.sxrtv.com/radio/index.shtml",
+    "guide": "https://apphhplushttps.sxrtv.com/epg/SXGB8.json",
+    "logo": "https://imagehhsitehttps.sxrtv.com/images/2023/1/6/2023161672970466371_33.png"
+  },
+  "cn-shanxi-2qcoq3f": {
+    "provider": "shanxi",
+    "id": "2qcOq3f",
+    "name": "山西故事广播",
+    "region": "山西",
+    "page": "https://www.sxrtv.com/radio/index.shtml",
+    "guide": "https://apphhplushttps.sxrtv.com/epg/SXGB9.json",
+    "logo": "https://imagehhsitehttps.sxrtv.com/images/2023/1/6/2023161672970479134_33.png"
+  },
+  "cn-jiangmen-kenj3i1": {
+    "provider": "jiangmen",
+    "id": "kenj3I1",
+    "name": "江门电台 FM93.3",
+    "region": "广东",
+    "page": "http://www.jmtv.cn/live/jm_live_h5.shtml?pid=2",
+    "guide": "http://db.jmtv.cn/epg/kenj3I1.json",
+    "relay": true,
+    "logo": "http://www.jmtv.cn/images/pc/ic_logo.png"
+  },
+  "cn-jiangmen-141ldor": {
+    "provider": "jiangmen",
+    "id": "141Ldor",
+    "name": "江门电台 FM100.2",
+    "region": "广东",
+    "page": "http://www.jmtv.cn/live/jm_live_h5.shtml?pid=4",
+    "guide": "http://db.jmtv.cn/epg/141Ldor.json",
+    "relay": true,
+    "logo": "http://www.jmtv.cn/images/pc/ic_logo.png"
+  },
+  "cn-yancheng-593862049734356992": {
+    "provider": "yancheng",
+    "id": "593862049734356992",
+    "name": "盐城广播FM98.8",
+    "region": "江苏",
+    "page": "https://www.0515yc.cn/folder147/folder148/folder156/folder246/",
+    "relay": true,
+    "logo": "https://filestorageyc.0515yc.cn/file/storage1-cloudlivemanage/cloudlivemanage/2023/1046/4750aa2a19ec3d7d.png"
+  },
+  "cn-yancheng-593862649498857472": {
+    "provider": "yancheng",
+    "id": "593862649498857472",
+    "name": "盐城广播FM105.3",
+    "region": "江苏",
+    "page": "https://www.0515yc.cn/folder147/folder148/folder156/folder246/",
+    "relay": true,
+    "logo": "https://filestorageyc.0515yc.cn/file/storage1-cloudlivemanage/cloudlivemanage/2025/1046/c2edd62b4370dd49.jpg"
+  },
+  "cn-yancheng-593863114089328640": {
+    "provider": "yancheng",
+    "id": "593863114089328640",
+    "name": "盐城广播FM88.2",
+    "region": "江苏",
+    "page": "https://www.0515yc.cn/folder147/folder148/folder156/folder246/",
+    "relay": true,
+    "logo": "https://filestorageyc.0515yc.cn/file/storage1-cloudlivemanage/cloudlivemanage/2023/1046/59677d9f1688580a.png"
+  },
+  "cn-yancheng-593863455765721088": {
+    "provider": "yancheng",
+    "id": "593863455765721088",
+    "name": "盐城广播FM98.0",
+    "region": "江苏",
+    "page": "https://www.0515yc.cn/folder147/folder148/folder156/folder246/",
+    "relay": true,
+    "logo": "https://filestorageyc.0515yc.cn/file/storage1-cloudlivemanage/cloudlivemanage/2023/1046/882ea448130b4b02.png"
+  },
+  "cn-mianyang-1033": {
+    "provider": "mianyang",
+    "id": "1033",
+    "name": "绵阳交通广播 FM103.3",
+    "region": "四川",
+    "page": "http://www.myntv.cn/html/zb/fm1033.asp",
+    "relay": true,
+    "logo": "http://www.myntv.cn/favicon.ico",
+    "icon": "mianyang.png"
+  },
+  "cn-mianyang-967": {
+    "provider": "mianyang",
+    "id": "967",
+    "name": "绵阳新闻广播 FM96.7",
+    "region": "四川",
+    "page": "http://www.myntv.cn/html/zb/fm967.asp",
+    "relay": true,
+    "logo": "http://www.myntv.cn/favicon.ico",
+    "icon": "mianyang.png"
+  },
+  "cn-dazhou-13561861": {
+    "provider": "dazhou",
+    "id": "13561861",
+    "name": "达州综合广播",
+    "region": "四川",
+    "page": "https://www.dzrm.cn/cms/tv/13561861",
+    "relay": true,
+    "logo": "https://file.dzrm.cn/cms/2023-12-13/72003140/B282FF4F176E24243D73113E41DBD607.png"
+  },
+  "cn-ganzi-67359462": {
+    "provider": "ganzi",
+    "id": "67359462",
+    "name": "甘孜调频应急广播 FM106.0",
+    "region": "四川",
+    "page": "https://www.ganzitv.com/cms/home/content?id=67359462",
+    "logo": "https://alifile.ganzitv.com/20210712/45FA4736A4F3608CAD27BF06EE93E64E/45FA4736A4F3608CAD27BF06EE93E64E.gif"
+  },
+  "cn-sctv-1025920": {
+    "provider": "sctv",
+    "id": "1025920",
+    "name": "四川综合广播",
+    "region": "四川",
+    "page": "https://www.sctv.com/channelLive",
+    "logo": "https://www.sctv.com/favicon.ico?favicon.1mcekxq0a-tfo.ico"
+  },
+  "cn-sctv-1025913": {
+    "provider": "sctv",
+    "id": "1025913",
+    "name": "四川新闻广播",
+    "region": "四川",
+    "page": "https://www.sctv.com/channelLive",
+    "logo": "https://www.sctv.com/favicon.ico?favicon.1mcekxq0a-tfo.ico"
+  },
+  "cn-sctv-1025919": {
+    "provider": "sctv",
+    "id": "1025919",
+    "name": "四川交通广播",
+    "region": "四川",
+    "page": "https://www.sctv.com/channelLive",
+    "logo": "https://www.sctv.com/favicon.ico?favicon.1mcekxq0a-tfo.ico"
+  },
+  "cn-sctv-1025914": {
+    "provider": "sctv",
+    "id": "1025914",
+    "name": "四川民族频率",
+    "region": "四川",
+    "page": "https://www.sctv.com/channelLive",
+    "logo": "https://www.sctv.com/favicon.ico?favicon.1mcekxq0a-tfo.ico"
+  },
+  "cn-sctv-1025917": {
+    "provider": "sctv",
+    "id": "1025917",
+    "name": "四川城市之音",
+    "region": "四川",
+    "page": "https://www.sctv.com/channelLive",
+    "logo": "https://www.sctv.com/favicon.ico?favicon.1mcekxq0a-tfo.ico"
+  },
+  "cn-sctv-1025918": {
+    "provider": "sctv",
+    "id": "1025918",
+    "name": "四川岷江音乐",
+    "region": "四川",
+    "page": "https://www.sctv.com/channelLive",
+    "logo": "https://www.sctv.com/favicon.ico?favicon.1mcekxq0a-tfo.ico"
+  },
+  "cn-nmtv-2305": {
+    "provider": "nmtv",
+    "id": "2305",
+    "name": "内蒙古新闻综合广播",
+    "region": "内蒙古",
+    "page": "https://www.nmtv.cn/liveBroadcast",
+    "relay": true,
+    "logo": "https://www.nmtv.cn/favicon/hxw32.ico"
+  },
+  "cn-nmtv-2307": {
+    "provider": "nmtv",
+    "id": "2307",
+    "name": "内蒙古交通之声",
+    "region": "内蒙古",
+    "page": "https://www.nmtv.cn/liveBroadcast",
+    "relay": true,
+    "logo": "https://www.nmtv.cn/favicon/hxw32.ico"
+  },
+  "cn-nmtv-2308": {
+    "provider": "nmtv",
+    "id": "2308",
+    "name": "内蒙古文艺之声",
+    "region": "内蒙古",
+    "page": "https://www.nmtv.cn/liveBroadcast",
+    "relay": true,
+    "logo": "https://www.nmtv.cn/favicon/hxw32.ico"
+  },
+  "cn-nmtv-2312": {
+    "provider": "nmtv",
+    "id": "2312",
+    "name": "内蒙古城乡生活广播",
+    "region": "内蒙古",
+    "page": "https://www.nmtv.cn/liveBroadcast",
+    "relay": true,
+    "logo": "https://www.nmtv.cn/favicon/hxw32.ico"
+  },
+  "cn-nmtv-2310": {
+    "provider": "nmtv",
+    "id": "2310",
+    "name": "内蒙古蒙古语广播",
+    "region": "内蒙古",
+    "page": "https://www.nmtv.cn/liveBroadcast",
+    "relay": true,
+    "logo": "https://www.nmtv.cn/favicon/hxw32.ico"
+  },
+  "cn-nmtv-2309": {
+    "provider": "nmtv",
+    "id": "2309",
+    "name": "内蒙古草原之声",
+    "region": "内蒙古",
+    "page": "https://www.nmtv.cn/liveBroadcast",
+    "relay": true,
+    "logo": "https://www.nmtv.cn/favicon/hxw32.ico"
+  },
+  "cn-nmtv-2947311": {
+    "provider": "nmtv",
+    "id": "2947311",
+    "name": "呼伦贝尔汉语广播",
+    "region": "内蒙古",
+    "page": "https://www.nmtv.cn/liveBroadcast",
+    "relay": true,
+    "logo": "https://www.nmtv.cn/favicon/hxw32.ico"
+  },
+  "cn-nmtv-2947310": {
+    "provider": "nmtv",
+    "id": "2947310",
+    "name": "锡林郭勒汉语广播",
+    "region": "内蒙古",
+    "page": "https://www.nmtv.cn/liveBroadcast",
+    "relay": true,
+    "logo": "https://www.nmtv.cn/favicon/hxw32.ico"
+  },
+  "cn-nmtv-2947307": {
+    "provider": "nmtv",
+    "id": "2947307",
+    "name": "阿拉善汉语广播",
+    "region": "内蒙古",
+    "page": "https://www.nmtv.cn/liveBroadcast",
+    "relay": true,
+    "logo": "https://www.nmtv.cn/favicon/hxw32.ico"
+  },
+  "cn-hebei-10516543": {
+    "provider": "hebei",
+    "id": "10516543",
+    "name": "河北综合广播",
+    "region": "河北",
+    "page": "https://www.hebrts.cn/19/19js/st/xgb/index.shtml",
+    "logo": "https://pic.cmc.hebrts.cn/0/0d91d6cfb98f5b206ac1e752757fc5a9/2022/07/12/a9a3af48ac0c4e87a0bfe13f729b94a7.png"
+  },
+  "cn-hebei-10516545": {
+    "provider": "hebei",
+    "id": "10516545",
+    "name": "河北新闻广播",
+    "region": "河北",
+    "page": "https://www.hebrts.cn/19/19js/st/xgb/index.shtml",
+    "logo": "https://pic.cmc.hebrts.cn/0/0d91d6cfb98f5b206ac1e752757fc5a9/2022/07/12/888ca0950c81453f9c2e8f752833a55b.png"
+  },
+  "cn-hebei-10516546": {
+    "provider": "hebei",
+    "id": "10516546",
+    "name": "河北交通广播",
+    "region": "河北",
+    "page": "https://www.hebrts.cn/19/19js/st/xgb/index.shtml",
+    "logo": "https://pic.cmc.hebrts.cn/0/0d91d6cfb98f5b206ac1e752757fc5a9/2022/07/12/dfaffe4ba1c54d679f4b97028e58bbe4.png"
+  },
+  "cn-hebei-10516548": {
+    "provider": "hebei",
+    "id": "10516548",
+    "name": "河北生活广播",
+    "region": "河北",
+    "page": "https://www.hebrts.cn/19/19js/st/xgb/index.shtml",
+    "logo": "https://pic.cmc.hebrts.cn/0/0d91d6cfb98f5b206ac1e752757fc5a9/2022/07/12/068de09ef3404d16ba41df43d78c8f6a.png"
+  },
+  "cn-hebei-10516549": {
+    "provider": "hebei",
+    "id": "10516549",
+    "name": "河北音乐广播",
+    "region": "河北",
+    "page": "https://www.hebrts.cn/19/19js/st/xgb/index.shtml",
+    "logo": "https://pic.cmc.hebrts.cn/0/0d91d6cfb98f5b206ac1e752757fc5a9/2022/07/12/e6b3f71f32cd48edb641e06f78c32354.png"
+  },
+  "cn-hebei-10516550": {
+    "provider": "hebei",
+    "id": "10516550",
+    "name": "河北三农广播",
+    "region": "河北",
+    "page": "https://www.hebrts.cn/19/19js/st/xgb/index.shtml",
+    "logo": "https://pic.cmc.hebrts.cn/0/0d91d6cfb98f5b206ac1e752757fc5a9/2025/04/30/a7828c93aa1a4470b196c771f4d8c4e1.png"
+  },
+  "cn-hebei-10516551": {
+    "provider": "hebei",
+    "id": "10516551",
+    "name": "河北旅游文化广播",
+    "region": "河北",
+    "page": "https://www.hebrts.cn/19/19js/st/xgb/index.shtml",
+    "logo": "https://pic.cmc.hebrts.cn/0/0d91d6cfb98f5b206ac1e752757fc5a9/2022/07/12/7373e2fecafd46f0a898e26f93ddd2b7.png"
+  },
+  "cn-dalian-12": {
+    "provider": "dalian",
+    "id": "12",
+    "name": "大连少儿广播",
+    "region": "辽宁",
+    "page": "https://nginx-dlrm.dlrm.cn/dlrm/site1/h/tv/12.html?hm=s",
+    "logo": "https://nginx-dlrm.dlrm.cn/dlrm/site1/resource/tv/dlrm/202511/25/e9abc5f9-4964-4dce-8500-07eae4ce6799.jpg"
+  },
+  "cn-dalian-11": {
+    "provider": "dalian",
+    "id": "11",
+    "name": "大连新闻综合广播",
+    "region": "辽宁",
+    "page": "https://nginx-dlrm.dlrm.cn/dlrm/site1/h/tv/11.html?hm=s",
+    "logo": "https://nginx-dlrm.dlrm.cn/dlrm/site1/resource/tv/dlrm/202511/25/e5643a71-6827-4e18-8011-bc103d43e33a.png"
+  },
+  "cn-dalian-13": {
+    "provider": "dalian",
+    "id": "13",
+    "name": "大连交通广播",
+    "region": "辽宁",
+    "page": "https://nginx-dlrm.dlrm.cn/dlrm/site1/h/tv/13.html?hm=s",
+    "logo": "https://nginx-dlrm.dlrm.cn/dlrm/site1/resource/tv/dlrm/202511/14/49331907-cfbb-4636-b0ec-406aa8987e93.png"
+  },
+  "cn-dalian-16": {
+    "provider": "dalian",
+    "id": "16",
+    "name": "大连体育广播",
+    "region": "辽宁",
+    "page": "https://nginx-dlrm.dlrm.cn/dlrm/site1/h/tv/16.html?hm=s",
+    "logo": "https://nginx-dlrm.dlrm.cn/dlrm/site1/resource/tv/dlrm/202511/14/0db0df48-d58d-4547-a716-e03ae7df2b46.jpg"
+  },
+  "cn-dalian-17": {
+    "provider": "dalian",
+    "id": "17",
+    "name": "大连老友之声",
+    "region": "辽宁",
+    "page": "https://nginx-dlrm.dlrm.cn/dlrm/site1/h/tv/17.html?hm=s",
+    "logo": "https://nginx-dlrm.dlrm.cn/dlrm/site1/resource/tv/dlrm/202511/18/30e1c945-ef65-4831-b196-3e9fc7b4960d.jpg"
+  },
+  "cn-dalian-14": {
+    "provider": "dalian",
+    "id": "14",
+    "name": "大连都市之声",
+    "region": "辽宁",
+    "page": "https://nginx-dlrm.dlrm.cn/dlrm/site1/h/tv/14.html?hm=s",
+    "logo": "https://nginx-dlrm.dlrm.cn/dlrm/site1/resource/tv/dlrm/202511/18/0c1dd1a8-aeba-409e-857b-a5f4d0dc9c27.png"
+  },
+  "cn-hubei-187": {
+    "provider": "hubei",
+    "id": "187",
+    "name": "湖北之声 FM104.6",
+    "region": "湖北",
+    "page": "https://news.hbtv.com.cn/app/streamradio/187",
+    "relay": true,
+    "logo": "https://news.hbtv.com.cn/t/site/10008/6fd52b21978e4534397ad7bea6ec6b0d/assets/cjmedia/logo_774.jpg"
+  },
+  "cn-hubei-193": {
+    "provider": "hubei",
+    "id": "193",
+    "name": "楚天交通广播 FM92.7",
+    "region": "湖北",
+    "page": "https://news.hbtv.com.cn/app/streamradio/193",
+    "relay": true,
+    "logo": "https://news.hbtv.com.cn/t/site/10008/6fd52b21978e4534397ad7bea6ec6b0d/assets/cjmedia/logo_927.jpg"
+  },
+  "cn-hubei-417": {
+    "provider": "hubei",
+    "id": "417",
+    "name": "湖北经典音乐广播 FM103.8",
+    "region": "湖北",
+    "page": "https://news.hbtv.com.cn/app/streamradio/417",
+    "relay": true,
+    "logo": "https://news.hbtv.com.cn/t/site/10008/6fd52b21978e4534397ad7bea6ec6b0d/assets/cjmedia/logo_1038.jpg"
+  },
+  "kbs-21": {
+    "provider": "kbs",
+    "id": "21",
+    "name": "KBS 1라디오",
+    "region": "韩国",
+    "page": "https://onair.kbs.co.kr/index.html?sname=onair&stype=live&ch_type=radioList&ch_code=21",
+    "guide": "https://schedule.kbs.co.kr/?sname=schedule&stype=table&type=radioList",
+    "logo": "https://padmin.static.kbs.co.kr/live/2025/3/7/1741313100641_442721.png"
+  },
+  "kbs-22": {
+    "provider": "kbs",
+    "id": "22",
+    "name": "KBS 2라디오",
+    "region": "韩国",
+    "page": "https://onair.kbs.co.kr/index.html?sname=onair&stype=live&ch_type=radioList&ch_code=22",
+    "guide": "https://schedule.kbs.co.kr/?sname=schedule&stype=table&type=radioList",
+    "logo": "https://padmin.static.kbs.co.kr/live/2025/3/11/1741700004070_443799.png"
+  },
+  "kbs-23": {
+    "provider": "kbs",
+    "id": "23",
+    "name": "KBS 3라디오",
+    "region": "韩国",
+    "page": "https://onair.kbs.co.kr/index.html?sname=onair&stype=live&ch_type=radioList&ch_code=23",
+    "guide": "https://schedule.kbs.co.kr/?sname=schedule&stype=table&type=radioList",
+    "logo": "https://padmin.static.kbs.co.kr/live/2025/3/11/1741700004143_443802.png"
+  },
+  "kbs-24": {
+    "provider": "kbs",
+    "id": "24",
+    "name": "KBS 1FM",
+    "region": "韩国",
+    "page": "https://onair.kbs.co.kr/index.html?sname=onair&stype=live&ch_type=radioList&ch_code=24",
+    "guide": "https://schedule.kbs.co.kr/?sname=schedule&stype=table&type=radioList",
+    "logo": "https://padmin.static.kbs.co.kr/live/2025/3/11/1741700004216_443813.png"
+  },
+  "kbs-25": {
+    "provider": "kbs",
+    "id": "25",
+    "name": "KBS 2FM",
+    "region": "韩国",
+    "page": "https://onair.kbs.co.kr/index.html?sname=onair&stype=live&ch_type=radioList&ch_code=25",
+    "guide": "https://schedule.kbs.co.kr/?sname=schedule&stype=table&type=radioList",
+    "logo": "https://padmin.static.kbs.co.kr/live/2025/3/11/1741700004290_443824.png"
+  },
+  "kbs-26": {
+    "provider": "kbs",
+    "id": "26",
+    "name": "KBS 한민족방송",
+    "region": "韩国",
+    "page": "https://onair.kbs.co.kr/index.html?sname=onair&stype=live&ch_type=radioList&ch_code=26",
+    "guide": "https://schedule.kbs.co.kr/?sname=schedule&stype=table&type=radioList",
+    "logo": "https://padmin.static.kbs.co.kr/live/2025/3/11/1741700004397_443835.png"
+  },
+  "kbs-wink11": {
+    "provider": "kbs",
+    "id": "wink11",
+    "name": "KBS WORLD MULTILINGUAL",
+    "region": "韩国",
+    "page": "https://onair.kbs.co.kr/index.html?sname=onair&stype=live&ch_type=radioList&ch_code=wink11",
+    "guide": "https://schedule.kbs.co.kr/?sname=schedule&stype=table&type=radioList",
+    "logo": "https://padmin.static.kbs.co.kr/live/2025/3/11/1741700004489_443846.png"
+  },
+  "kbs-i92": {
+    "provider": "kbs",
+    "id": "I92",
+    "name": "KBS WORLD ENGLISH",
+    "region": "韩国",
+    "page": "https://onair.kbs.co.kr/index.html?sname=onair&stype=live&ch_type=radioList&ch_code=I92",
+    "guide": "https://schedule.kbs.co.kr/?sname=schedule&stype=table&type=radioList",
+    "logo": "https://padmin.static.kbs.co.kr/live/2025/3/11/1741700004556_443857.png"
+  },
+  "cn-wuxi-7": {
+    "provider": "wuxi",
+    "id": "7",
+    "name": "无锡新闻广播",
+    "region": "江苏",
+    "page": "https://bb-share.wifiwx.com/wxbb/share/live/?channel_id=7",
+    "logo": "https://bb-img.wifiwx.com/20220310181537ae3f4e10f48c5fec3eddb28963.png"
+  },
+  "cn-wuxi-19": {
+    "provider": "wuxi",
+    "id": "19",
+    "name": "无锡新闻综合广播",
+    "region": "江苏",
+    "page": "https://bb-share.wifiwx.com/wxbb/share/live/?channel_id=19",
+    "logo": "https://bb-img.wifiwx.com/20220523962aabb22c267fc1def12f183b1a19d8.png"
+  },
+  "cn-wuxi-14": {
+    "provider": "wuxi",
+    "id": "14",
+    "name": "无锡经济广播",
+    "region": "江苏",
+    "page": "https://bb-share.wifiwx.com/wxbb/share/live/?channel_id=14",
+    "logo": "https://bb-img.wifiwx.com/202203101449ffd35dbab2fbda32e398f40d63dd.png"
+  },
+  "cn-wuxi-15": {
+    "provider": "wuxi",
+    "id": "15",
+    "name": "无锡音乐广播",
+    "region": "江苏",
+    "page": "https://bb-share.wifiwx.com/wxbb/share/live/?channel_id=15",
+    "logo": "https://bb-img.wifiwx.com/2022031091d0a5487fca4c4e68d0960980c3cc20.png"
+  },
+  "cn-wuxi-16": {
+    "provider": "wuxi",
+    "id": "16",
+    "name": "无锡交通广播",
+    "region": "江苏",
+    "page": "https://bb-share.wifiwx.com/wxbb/share/live/?channel_id=16",
+    "logo": "https://bb-img.wifiwx.com/20220310240a9a0d1a8eb4efea64dec34aefcd32.png"
+  },
+  "cn-wuxi-17": {
+    "provider": "wuxi",
+    "id": "17",
+    "name": "无锡梁溪之声广播",
+    "region": "江苏",
+    "page": "https://bb-share.wifiwx.com/wxbb/share/live/?channel_id=17",
+    "logo": "https://bb-img.wifiwx.com/202203106d2ba5ef67632f9bdb3854f194b315c7.png"
+  },
+  "cn-ningde-21": {
+    "provider": "ningde",
+    "id": "21",
+    "name": "FM101.7宁德综合广播",
+    "region": "福建",
+    "page": "https://app.0593tv.cn/jhxtapi/jhxt/Live/gbShow/id/21",
+    "logo": "https://app.0593tv.cn/files/jhxt/image/20251020/4e5e822e7ec9a06c592bf617b269fe6a.png"
+  },
+  "cn-ningde-22": {
+    "provider": "ningde",
+    "id": "22",
+    "name": "FM93.3宁德交通旅游广播",
+    "region": "福建",
+    "page": "https://app.0593tv.cn/jhxtapi/jhxt/Live/gbShow/id/22",
+    "logo": "https://app.0593tv.cn/files/jhxt/image/20251021/e005ee22cf3e0ab0ccfb9cff7f91b4f1.png"
+  },
+  "cn-jilin-1541": {
+    "provider": "jilin",
+    "id": "1541",
+    "name": "吉林新闻综合广播",
+    "region": "吉林",
+    "page": "https://m.jlntv.cn/broadcast?id=1541&sign=7aec51fc9",
+    "logo": "https://m.jlntv.cn/logo.png"
+  },
+  "cn-jilin-1545": {
+    "provider": "jilin",
+    "id": "1545",
+    "name": "吉林交通广播",
+    "region": "吉林",
+    "page": "https://m.jlntv.cn/broadcast?id=1545&sign=b2b21bedc",
+    "logo": "https://m.jlntv.cn/logo.png"
+  },
+  "cn-jilin-1547": {
+    "provider": "jilin",
+    "id": "1547",
+    "name": "吉林经济广播",
+    "region": "吉林",
+    "page": "https://m.jlntv.cn/broadcast?id=1547&sign=e1ebb6eb9",
+    "logo": "https://m.jlntv.cn/logo.png"
+  },
+  "cn-jilin-6406": {
+    "provider": "jilin",
+    "id": "6406",
+    "name": "吉林乡村广播",
+    "region": "吉林",
+    "page": "https://m.jlntv.cn/broadcast?id=6406&sign=4e4c55166",
+    "logo": "https://m.jlntv.cn/logo.png"
+  },
+  "cn-jilin-1546": {
+    "provider": "jilin",
+    "id": "1546",
+    "name": "吉林音乐广播",
+    "region": "吉林",
+    "page": "https://m.jlntv.cn/broadcast?id=1546&sign=3deea5f00",
+    "logo": "https://m.jlntv.cn/logo.png"
+  },
+  "cn-jilin-1542": {
+    "provider": "jilin",
+    "id": "1542",
+    "name": "吉林资讯广播",
+    "region": "吉林",
+    "page": "https://m.jlntv.cn/broadcast?id=1542&sign=fc2a8c14e",
+    "logo": "https://m.jlntv.cn/logo.png"
+  },
+  "cn-jilin-1543": {
+    "provider": "jilin",
+    "id": "1543",
+    "name": "吉林健康娱乐广播",
+    "region": "吉林",
+    "page": "https://m.jlntv.cn/broadcast?id=1543&sign=14fc6fe50",
+    "logo": "https://m.jlntv.cn/logo.png"
+  },
+  "cn-jilin-1544": {
+    "provider": "jilin",
+    "id": "1544",
+    "name": "吉林旅游广播",
+    "region": "吉林",
+    "page": "https://m.jlntv.cn/broadcast?id=1544&sign=6bb3522a8",
+    "logo": "https://m.jlntv.cn/logo.png"
+  }
+}

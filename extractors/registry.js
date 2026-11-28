@@ -257,6 +257,7 @@ import livechina from './livechina/index.js'
 import lotustv from './lotustv/index.js'
 import meizhouHakka from './meizhou-hakka/index.js'
 import mgtv from './mgtv/index.js'
+import radioModules from './radio/index.js'
 import migu from './migu/index.js'
 import ningbo from './ningbo/index.js'
 import ningde from './ningde/index.js'
@@ -292,7 +293,7 @@ import overseas from './overseas/index.js'
 export const MODULE_ID_RE = /^[a-z0-9][a-z0-9_-]{0,31}$/
 // proxyHosts 的每一项：小写域名后缀，至少两段，不带协议、端口、路径、通配符
 const PROXY_HOST_RE = /^(?=.{1,253}$)[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+$/
-export const MODULE_CATEGORIES = new Set(['account', 'live', 'standard', 'overseas'])
+export const MODULE_CATEGORIES = new Set(['account', 'live', 'standard', 'radio', 'overseas'])
 
 const MODULES = [
   // 顺序即后台展示顺序，也是 channelMerger 的合并顺序（先到的分组优先保留）
@@ -378,6 +379,7 @@ const MODULES = [
   shandongCounties,
   // 市县台（广电云，按省拆成 20 个模块）跟在各省级、地市模块之后：并进同省分组时排在省台、市台后面
   ...guangdianyunModules,
+  ...radioModules,
   // 海外频道排最后：并进体育、文旅等现有分组时，跟在各台官方频道后面
   redbull,
   xumo,

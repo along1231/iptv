@@ -101,7 +101,12 @@ export function logoCandidates(channelItem, groupName, libraryAllowed, { hosting
   const backed = hosting ? packBackedLogoUrl(channelItem, style) : ''
   if (backed) candidates.push({ url: backed, from: 'pack' })
   const own = backed ? '' : (channelItem.pics?.highResolutionH || channelItem.logo || '')
-  if (own) candidates.push({ url: own, from: 'source' })
+  if (own) {
+    // Add the deployment prefix here, after the merger has checked all source data.
+    const bundledRadioIcon = channelItem.radio && channelItem.sourceId?.startsWith('xt:radio-')
+      && /^\/radio-icons\/[a-z0-9-]+\.(?:png|jpg|svg)$/.test(own)
+    candidates.push({ url: bundledRadioIcon ? '${replace}' + own : own, from: 'source' })
+  }
   const packed = backed ? '' : packLogoUrl(channelItem, groupName, style)
   if (packed) candidates.push({ url: packed, from: 'pack' })
   if (libraryAllowed && externalLogoBase) {
@@ -520,7 +525,7 @@ async function updateTV(hours, options = {}) {
       const catchupAttr = renderCatchupAttrs(isExternal && claimsCustomProxyRef(channelItem.proxyRef)
         ? catchupForProxyEntry(channelItem)
         : channelItem)
-      appendFileSync(interfacePath, `#EXTINF:-1 tvg-id="${channelItem.name}" tvg-name="${channelItem.name}" tvg-logo="${logoUrl}"${sourceAttr}${identityAttr}${catchupAttr} group-title="${datas[i].name}",${channelItem.name}\n${optLines}${playUrl}\n`)
+      appendFileSync(interfacePath, `#EXTINF:-1 tvg-id="${channelItem.name}" tvg-name="${channelItem.name}" tvg-logo="${logoUrl}"${channelItem.radio === true ? ' radio="true"' : ''}${sourceAttr}${identityAttr}${catchupAttr} group-title="${datas[i].name}",${channelItem.name}\n${optLines}${playUrl}\n`)
       writtenChannels++
       // txt：diyp/TVBox 格式只有「频道名,地址」两列，放不下请求头，依赖请求头的
       // 频道写进去必定 403——缺一个台好过一个死台，整条跳过。

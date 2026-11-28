@@ -945,6 +945,7 @@
             border-color: var(--ui-info-line);
         }
 
+        .source-badge.radio,
         .source-badge.standard {
             background: var(--ui-success-soft);
             color: var(--ui-success);
@@ -3382,7 +3383,7 @@
         .source-badge, .status-badge, .external-mode-badge, .mode-badge,
         .instant-badge, .login-state-badge, .channel-tag { padding: 2px 7px; border-radius: 5px; font-weight: 500; }
         .source-badge.builtin, .source-badge.account, .source-badge.live,
-        .source-badge.standard, .source-badge.overseas,
+        .source-badge.radio, .source-badge.standard, .source-badge.overseas,
         .external-mode-badge.fetch, .external-mode-badge.direct, .external-mode-badge.subscription,
         .mode-badge, .mode-badge.mode-direct, .mode-badge.mode-subscription {
             color: var(--ui-text-secondary);
@@ -6585,6 +6586,12 @@
                     title: '免账号模块',
                     badge: '免账号',
                     description: '无需填写账号凭据，启用后即可自动抓取官方公开频道。',
+                },
+                {
+                    id: 'radio',
+                    title: '广播',
+                    badge: '广播',
+                    description: '按地区启用广播，刷新后可在订阅中收听并查看节目单。',
                 },
                 {
                     id: 'overseas',
@@ -14861,6 +14868,11 @@ if(success){
             try {
                 const url = new URL(rawUrl, pageUrl);
                 if (url.origin !== new URL(pageUrl).origin) return rawUrl;
+                const radio = url.pathname.match(/^(.*?\/)(?:(?:relay|proxy)\/)?(radio-[a-z0-9_-]+)(?:\.m3u8)?$/);
+                if (radio) {
+                    url.pathname = radio[1] + radio[2] + (radio[2].startsWith('radio-ner-') ? '.aac' : '.mp3');
+                    return url.href;
+                }
                 const match = url.pathname.match(/^(.*\/)(\d+|iqilu-[a-z0-9]{2,12}|ningbo-[a-z]{2,12})(?:\.m3u8)?$/);
                 if (!match) return rawUrl;
                 let prefix = match[1];

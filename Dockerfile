@@ -43,7 +43,7 @@ RUN apk add --no-cache python3 \
   && ln -s /opt/youtube/bin/yt-dlp /usr/local/bin/yt-dlp
 
 # Xumo 只在新增频道/更换入口时解码已通过网络代理下载的本地样本（含 ffprobe），直播播放不转码。
-RUN apk add --no-cache ffmpeg
+RUN apk add --no-cache ffmpeg curl
 
 # 内置台标（logo-pack/，约 18 MB）单独一层，放在 package.json 前面：每次发版版本号都变，它之后的层必然重建；
 # 台标没变时这一层原样复用，用户升级不用重下。台标改了才重下这一层。最后复制代码时把它排除掉，免得同一份文件在两层各存一份。

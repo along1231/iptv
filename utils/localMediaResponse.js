@@ -5,6 +5,7 @@ import { pipeline } from 'node:stream/promises'
 // Keep backpressure and release the upstream when the player disconnects.
 export async function sendLocalMediaResponse(res, method, local) {
   const dispose = () => local.dispose?.()
+  if (res.destroyed) { dispose(); return }
   res.once('close', dispose)
   try {
     res.writeHead(local.status || 200, {

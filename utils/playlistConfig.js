@@ -291,6 +291,7 @@ export function parseInterfaceTxt({ forTxt = false } = {}) {
             tvgId: tvgIdMatch ? tvgIdMatch[1] : '',
             tvgName: tvgName,
             logo,
+            ...(/ radio="true"/i.test(line) ? { radio: true } : {}),
             logoStatus: classifyLogo(logo),       // local | source | auto | none
             epgMatched,                            // 该频道是否有节目单
             epgName: epgMatched ? epgId : '',      // 命中的规范名（详情里展示，解释「显示名虽特殊但已归一匹配」）
@@ -722,7 +723,7 @@ export function generateM3u8(groups) {
   groups.forEach(group => {
     group.channels.forEach(channel => {
       const catchupAttr = renderCatchupAttrs(channel)
-      content += `#EXTINF:-1 tvg-id="${channel.tvgId}" tvg-name="${channel.tvgName}" tvg-logo="${channel.logo}"${catchupAttr} group-title="${group.name}",${channel.name}\n`
+      content += `#EXTINF:-1 tvg-id="${channel.tvgId}" tvg-name="${channel.tvgName}" tvg-logo="${channel.logo}"${channel.radio ? ' radio="true"' : ''}${catchupAttr} group-title="${group.name}",${channel.name}\n`
       // 防盗链频道的请求头必须夹在 EXTINF 和地址之间；无 opts 时为空串，输出不变
       content += renderOpts(channel.opts)
       content += `${channel.url}\n`
