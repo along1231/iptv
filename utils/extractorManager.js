@@ -28,6 +28,7 @@ import { dataPath } from "./paths.js"
 import { sanitizeOpts } from "./channelOpts.js"
 import { listModules, getModule, sourceIdOf, moduleRegion, REGION_NAMES } from "../extractors/registry.js"
 import { printBlue, printGreen, printRed, printYellow } from "./colorOut.js"
+import { mainlandRegion } from "../extractors/radio/provinces.js"
 import { secretHint } from "./secretHint.js"
 import { enableExtractors } from "../config.js"
 import { listProfiles, readConfig, saveConfig } from "./playlistConfig.js"
@@ -117,7 +118,7 @@ export function pruneUnclaimedCachedChannels(module, groups) {
       }
       let claimed = false
       try {
-        claimed = module.claimsRef(String(channel.deferredRef)) === true
+        claimed = (module.claimsCachedRef || module.claimsRef).call(module, String(channel.deferredRef)) === true
       } catch {
         claimed = false
       }
@@ -380,6 +381,20 @@ function mediaForwardingOf(module, config, groups) {
   return { kind: forwarded === 0 ? '' : forwarded === total ? 'all' : 'some', forwarded, total }
 }
 
+// 同一频率只显示一个入口，匹配的目录线路留在模块缓存中供播放失败时切换。
+function listedModuleChannels(module, group) {
+  const channels = group?.dataList || []
+  if (!module.hasOfficialRadio) return channels
+  const refs = new Set(channels.map(ch => ch?.deferredRef).filter(Boolean))
+  return channels.filter(ch => !refs.has(ch?.officialRadioRef))
+}
+
+function moduleChannelGroup(module, group) {
+  const rows = listedModuleChannels(module, group).filter(ch => ch?.name)
+  return { name: group.name, channels: rows.map(ch => ch.name),
+    ...(module.category === 'radio' ? { radioRefs: rows.map(ch => [ch.deferredRef]) } : {}) }
+}
+
 class ExtractorManager {
   constructor() {
     this.configPath = dataPath(CONFIG_FILE)
@@ -429,9 +444,44 @@ class ExtractorManager {
       delete this.cache.modules[id]
       cacheChanged = true
     }
+    // 旧版按四个地区开关补充电台。迁移到当地广播卡片，保留地区启用状态。
+    for (const code of ['CN', 'HK', 'MO', 'TW']) {
+      const oldId = 'radio-browser-' + code.toLowerCase()
+      const old = this.config.modules[oldId]
+      const oldCache = this.cache.modules[oldId]
+      if (!old && !oldCache) continue
+      if (old?.enabled === true) {
+        const regions = listModules().filter(module => module.directoryCode === code)
+        for (const module of regions) {
+          const entry = this.#entry(module.id)
+          if (!module.hasOfficialRadio && old.config?.useProxy) entry.config.useProxy = true
+          entry.enabled = true
+          this.#cacheEntry(module.id).health.lastSuccessAt = null
+        }
+        for (const group of oldCache?.groups || []) {
+          for (const ch of group.dataList || []) {
+            const region = ch.region || mainlandRegion(ch.name || '')
+            const module = regions.find(m => ch.officialRadioRef && m.hasOfficialRadio && m.claimsCachedRef(ch.officialRadioRef))
+              || (code === 'CN' ? regions.find(m => m.region === region) : regions[0])
+            if (!module) continue
+            const target = this.#cacheEntry(module.id)
+            if (!target.groups.length) target.groups.push({ name: module.name, dataList: [] })
+            if (!target.groups[0].dataList.some(item => item.deferredRef === ch.deferredRef)) target.groups[0].dataList.push(ch)
+          }
+        }
+      }
+      if (old) { delete this.config.modules[oldId]; configChanged = true }
+      if (oldCache) { delete this.cache.modules[oldId]; cacheChanged = true }
+    }
     // 要在下面按 claimsRef 清缓存之前：原模块已不认领拆走的频道，先清就搬不过来了
     if (this.#moveSplitGroups()) cacheChanged = true
     for (const module of listModules()) {
+      const settings = this.config.modules[module.id]?.config
+      if (module.hasOfficialRadio && settings && ('includeDirectory' in settings || 'includeOfficial' in settings)) {
+        delete settings.includeDirectory
+        delete settings.includeOfficial
+        configChanged = true
+      }
       this.configGen.set(module.id, (this.configGen.get(module.id) || 0) + 1)
       const cacheEntry = this.#cacheEntry(module.id)
       const pruned = pruneUnclaimedCachedChannels(module, cacheEntry.groups)
@@ -766,6 +816,11 @@ class ExtractorManager {
     return entry
   }
 
+  cachedGroups(id) {
+    if (!this.loaded) this.load()
+    return this.#cacheEntry(id).groups
+  }
+
   #cacheEntry(id) {
     if (!this.cache.modules[id]) this.cache.modules[id] = { groups: [], health: emptyHealth() }
     const entry = this.cache.modules[id]
@@ -857,6 +912,8 @@ class ExtractorManager {
       const cacheEntry = this.#cacheEntry(module.id)
       const effective = this.effectiveConfig(module)
       const health = this.#displayHealth(module, effective, cacheEntry)
+      const channelGroups = cacheEntry.groups.map(group => moduleChannelGroup(module, group))
+        .filter(group => group.channels.length)
       const enabled = this.isModuleEnabled(module)
       const { config, secretsSet, secretHints } = redactConfig(module, effective)
       // 值来自环境变量而非后台时要让用户知道，否则会遇到「后台看着是空的、
@@ -907,16 +964,12 @@ class ExtractorManager {
         maxRefreshMinutes: module.maxRefreshMinutes ?? 1440,
         refreshConfigurable: module.refreshConfigurable !== false,
         refreshDescription: module.refreshDescription || '',
-        health,
+        health: module.hasOfficialRadio
+          ? { ...health, channelCount: channelGroups.reduce((n, group) => n + group.channels.length, 0) } : health,
         // 频道在播放列表里的来源标记（xt:<id>，咪咕是 migu）：后台据此把下面名单里的
         // 频道名对到播放列表里的那个频道，点开看只读详情
         sourceId: module.sourceId || sourceIdOf(module.id),
-        // 详情弹窗列「抓到了哪些频道」（issue #164）：只给名字，地址等不出后台。
-        // 来自缓存，关掉的模块也保留关闭前最后一轮；没抓到过就是空数组。
-        channelGroups: cacheEntry.groups.map(group => ({
-          name: group.name,
-          channels: group.dataList.map(channel => channel?.name).filter(Boolean),
-        })).filter(group => group.channels.length),
+        channelGroups,
       }
     })
     return {
@@ -1315,6 +1368,7 @@ class ExtractorManager {
       // 老用户的「按配置档禁用源」配置里存的是字面量 'migu'，改成 'xt:migu'
       // 会让那些设置一次性失配。
       const sourceId = module.sourceId || sourceIdOf(module.id)
+      const config = this.effectiveConfig(module)
       for (const group of this.#cacheEntry(module.id).groups) {
         // 模块更名分组后，抓取失败会继续沿用旧磁盘缓存。输出时先做别名
         // 迁移，避免用户必须等平台下一次成功才能看到新分组名。
@@ -1324,7 +1378,7 @@ class ExtractorManager {
         const name = preserveName
           ? cachedName
           : module.outputGroupName || cachedName
-        const channels = group?.dataList || []
+        const channels = listedModuleChannels(module, group)
         // 只装着补充频道的分组不在这里建，免得分组位置由补充频道决定
         const onlySupplements = channels.length > 0 && channels.every(channel => channel?.supplement === true)
         if (!onlySupplements && !groupMap.has(name)) groupMap.set(name, { name, dataList: [] })
@@ -1332,7 +1386,7 @@ class ExtractorManager {
           if (!channel?.name) continue
           // 平台级 HLS 模式在输出时覆盖频道缓存，既避免每条频道重复声明，
           // 也让平台防盗链规则变化后能立即修正旧磁盘缓存，无需等待下一轮抓取。
-          const hlsMode = channelHlsModeOf(module, this.effectiveConfig(module))
+          const hlsMode = channelHlsModeOf(module, config)
           const hlsRouting = hlsMode === 'proxy'
             ? { proxyHls: true, relayHls: false }
             : hlsMode === 'relay'

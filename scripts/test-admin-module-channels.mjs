@@ -107,6 +107,17 @@ check('点开是只读详情；当前档隐藏的标未显示', () => {
   ])
 })
 
+check('广播目录刚抓到、播放列表尚未刷新时，频道仍能打开自己的播放入口', () => {
+  const { context, opened } = harness()
+  const ref = 'radio-rb-cn-0123456789abcdef'
+  const group = { name: '广东广播', channels: ['新频率'], radioRefs: [[ref]] }
+  assert.match(context.extractorChannelsHtml(moduleOf({ channelGroups: [group] })), /<button/)
+  context.openModuleChannelDetail('xt:radio-guangdong', group.name, '新频率', [ref])
+  assert.equal(opened[0][0], ref)
+  assert.equal(opened[0][2].preview.url, '${replace}/' + ref)
+  assert.equal(opened[0][2].readOnly, true)
+})
+
 check('列表刷新后频道没了：提示而不是打开空详情', () => {
   const { context, opened, statuses } = harness()
   context.openModuleChannelDetail('xt:sichuan-cities', '成都', '还没进列表')

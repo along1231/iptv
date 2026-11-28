@@ -3754,8 +3754,20 @@
         .inline-player-top strong { font-size: 16px; }
         .inline-player-tools { display: flex; gap: 8px; }
         /* 裁掉原生控制栏下方可能露出的 1px 视频底色。 */
-        .inline-player-frame { overflow: hidden; }
+        .inline-player-frame { position: relative; overflow: hidden; border-radius: 14px 14px 0 0; }
+        .inline-channel-art:not([hidden]) {
+            position: absolute;
+            inset: 0 0 54px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--ui-surface-soft);
+            pointer-events: none;
+        }
+        .inline-channel-art img { width: min(60%, 240px); height: 65%; object-fit: contain; }
+        .inline-channel-art img:not([hidden]) + span { display: none; }
         dialog.inline-player video { width: 100%; aspect-ratio: 16 / 9; display: block; margin-bottom: -1px; border-radius: 14px 14px 0 0; background: #000; }
+        .inline-player-frame:has(.inline-channel-art:not([hidden])) video { background: var(--ui-surface-soft); }
         dialog.inline-player video::-webkit-media-controls-enclosure { border-radius: 0; }
         .inline-player-status { min-height: 20px; margin: 11px 0 0; color: var(--ui-muted); font-size: 13px; }
         .inline-player-status.bad { color: var(--ui-danger); }
@@ -5925,19 +5937,20 @@
             // 播放列表里已经没有这些频道，没有地址可看，保持纯文字。
             // 开着却找不到的，多是同名台改用了别的源（如咪咕的嘉佳卡通让位给广东模块），或列表还没刷新
             let clickable = 0;
-            const chip = (group, name) => {
-                const found = m.enabled ? findModuleChannel(m.sourceId, group.name, name) : null;
+            const chip = (group, name, index) => {
+                const refs = group.radioRefs?.[index];
+                const found = m.enabled && (refs?.length || findModuleChannel(m.sourceId, group.name, name));
                 if (!found) {
                     const tip = m.enabled && m.sourceId ? `${name}：播放列表里没有这一路，不能查看详情` : name;
                     return `<span class="extractor-channel-chip" title="${escapeHtml(tip)}">${escapeHtml(name)}</span>`;
                 }
                 clickable++;
-                const args = [m.sourceId, group.name, name].map(v => escapeHtml(JSON.stringify(v))).join(', ');
+                const args = [m.sourceId, group.name, name, ...(refs?.length ? [refs] : [])].map(v => escapeHtml(JSON.stringify(v))).join(', ');
                 return `<button type="button" class="extractor-channel-chip" title="查看详情：${escapeHtml(name)}" onclick="openModuleChannelDetail(${args})">${escapeHtml(name)}</button>`;
             };
             const body = groups.map(group => `<div class="extractor-channel-group">
                         ${showGroupName ? `<div class="extractor-channel-group-name">${escapeHtml(group.name)}（${group.channels.length}）</div>` : ''}
-                        <div class="extractor-channel-chips">${group.channels.map(name => chip(group, name)).join('')}</div>
+                        <div class="extractor-channel-chips">${group.channels.map((name, index) => chip(group, name, index)).join('')}</div>
                     </div>`).join('');
             const notes = [note, clickable ? '点频道名查看详情' : ''].filter(Boolean).join('；');
             return `<div class="extractor-channels">
@@ -5974,7 +5987,14 @@
          * 源管理里点频道名：只读详情，叠在模块详情上面，关掉回到名单。
          * 改名、移动、台标、隐藏都按配置档生效，统一留在「我的频道」里改。
          */
-        function openModuleChannelDetail(sourceId, groupName, channelName) {
+        function openModuleChannelDetail(sourceId, groupName, channelName, refs = []) {
+            if (refs.length && refs.every(ref => /^radio-[a-z0-9_-]+$/i.test(ref))) {
+                const [id] = refs;
+                const preview = { id, name: channelName, url: '${replace}/' + id, sourceIds: [sourceId], originalGroup: groupName };
+                const shown = myPlaylistData.some(group => group.channels.some(ch => ch.id === id));
+                showChannelDetail(id, !shown, { readOnly: true, preview });
+                return;
+            }
             const channel = findModuleChannel(sourceId, groupName, channelName);
             if (!channel) {
                 showStatus('播放列表里暂时找不到这个频道，等这一轮刷新完再试', 'error');
@@ -6135,7 +6155,7 @@
             };
             for (const module of modules) {
                 const key = !module.region ? 'other' : ['香港', '澳门', '台湾'].includes(module.region)
-                    ? 'hmt' : module.regionIsArea ? 'mainland' : 'overseas';
+                    ? 'hmt' : (['中国大陆', '全国', '大陆其他'].includes(module.region) || module.regionIsArea) ? 'mainland' : 'overseas';
                 sections[key].items.push(module);
             }
             return Object.entries(sections).filter(([, section]) => section.items.length)
@@ -12277,7 +12297,7 @@ if(success){
         // 点搜索结果：退出搜索，切到频道所在的分组，并用「刚编辑过」的高亮（issue #50）定位到那一行
         function playSearchResult(i) {
             const result = channelSearchResults[i];
-            if (result) playInline(result.channel.url, result.channel.name);
+            if (result) playInline(result.channel.url, result.channel.name, result.channel.logo);
         }
 
         async function hideSearchResult(i) {
@@ -14000,13 +14020,14 @@ if(success){
             const actualUrl = String(channel.url).replace(/\$\{replace\}/g, baseUrl);
             const urlArg = escapeHtml(JSON.stringify(actualUrl));
             const nameArg = escapeHtml(JSON.stringify(channel.name || ''));
+            const logoArg = escapeHtml(JSON.stringify(channel.logo || ''));
             const playIcon = '<svg viewBox="0 0 16 16" aria-hidden="true" fill="currentColor"><path d="M3.5 2.5v11l10-5.5z"/></svg>';
             return `
                 <section class="channel-detail-section">
                     <h4>播放地址</h4>
                     <code class="channel-detail-url">${escapeHtml(actualUrl)}</code>
                     <div class="channel-detail-buttons">
-                        <button class="btn btn-primary" onclick="playInline(${urlArg}, ${nameArg})">${playIcon}在页面里播放</button>
+                        <button class="btn btn-primary" onclick="playInline(${urlArg}, ${nameArg}, ${logoArg})">${playIcon}在页面里播放</button>
                         <button class="btn" onclick="copyToClipboard(${urlArg}, '播放地址')">复制地址</button>
                     </div>
                 </section>
@@ -14202,7 +14223,7 @@ if(success){
 
         function playSameNameLine(i) {
             const line = sameNameLines[i];
-            if (line) playInline(line.channel.url, line.name);
+            if (line) playInline(line.channel.url, line.name, line.channel.logo);
         }
 
         async function hideSameNameLine(i) {
@@ -14258,7 +14279,7 @@ if(success){
 
         // readOnly：从源管理的模块名单点进来，只看不改（见 openModuleChannelDetail），弹窗叠在模块详情上面
         // focusSameName：从分组列表的「同名×N」点进来，打开后直接滚到「同名线路」
-        function showChannelDetail(channelId, isDeleted, { readOnly = false, focusSameName = false } = {}) {
+        function showChannelDetail(channelId, isDeleted, { readOnly = false, focusSameName = false, preview } = {}) {
             document.getElementById('channelDetailModal').classList.toggle('is-stacked', readOnly);
             // 从原始数据中查找频道
             let channel = null;
@@ -14294,6 +14315,10 @@ if(success){
                 }
             }
 
+            if (!channel && readOnly && preview) {
+                channel = preview;
+                groupName = preview.originalGroup;
+            }
             if (!channel) {
                 showStatus('频道未找到', 'error');
                 return;
@@ -14949,6 +14974,11 @@ if(success){
             try {
                 const url = new URL(rawUrl, pageUrl);
                 if (url.origin !== new URL(pageUrl).origin) return rawUrl;
+                const directory = url.pathname.match(/^(.*?\/)(?:(?:relay|proxy)\/)?(radio-rb-(?:cn|hk|mo|tw)-[a-f0-9]{16})(?:\.\w+)?$/);
+                if (directory) {
+                    url.pathname = directory[1] + 'proxy/' + directory[2];
+                    return url.href;
+                }
                 const radio = url.pathname.match(/^(.*?\/)(?:(?:relay|proxy)\/)?(radio-[a-z0-9_-]+)(?:\.m3u8)?$/);
                 if (radio) {
                     url.pathname = radio[1] + radio[2] + (radio[2].startsWith('radio-ner-') ? '.aac' : '.mp3');
@@ -14977,7 +15007,28 @@ if(success){
                 return `${page.origin}${page.pathname.replace(/\/[^/]+$/, '')}/proxy/web.m3u8?u=${encodeURIComponent(rawUrl)}`;
             } catch { return ''; }
         }
+        async function radioBackupUrl(rawUrl) {
+            try {
+                const url = new URL(rawUrl, location.href);
+                if (url.origin !== location.origin || !/\/radio-(?!rb-)[\w-]+\.(mp3|aac)$/.test(url.pathname)) return '';
+                const response = await fetch(url, { method: 'HEAD', cache: 'no-store', signal: AbortSignal.timeout(5000) });
+                const ref = response.headers.get('X-Radio-Backup');
+                if (response.ok && /^radio-rb-(cn|hk|mo|tw)-[a-f0-9]{16}$/.test(ref)) return new URL('proxy/' + ref, url).href;
+            } catch {}
+            return '';
+        }
         async function pickWebPlayback(rawUrl, pageUrl = window.location.href) {
+            // A directory frequency can switch between HLS and continuous audio on fallback.
+            const url = String(rawUrl).includes('/proxy/radio-rb-') ? new URL(rawUrl, pageUrl) : null;
+            if (url?.origin === new URL(pageUrl).origin && /\/proxy\/radio-rb-(?:cn|hk|mo|tw)-[a-f0-9]{16}$/.test(url.pathname)) {
+                const probe = await fetch(rawUrl, { cache: 'no-store' });
+                try {
+                    if (!probe.ok) throw new Error('广播线路暂时不可用 (HTTP ' + probe.status + ')');
+                    return { url: rawUrl, reason: '', directAudio: !/mpegurl/i.test(probe.headers.get('content-type') || '') };
+                } finally {
+                    await probe.body?.cancel();
+                }
+            }
             const forward = webForwardUrl(rawUrl, pageUrl);
             if (!forward) return { url: rawUrl, reason: '' };
             try {
@@ -15025,6 +15076,11 @@ if(success){
             if (inlinePlayerCleanup) { try { inlinePlayerCleanup(); } catch (e) {} inlinePlayerCleanup = null; }
             inlinePlayerSession++;
             inlineForwardReason = '';
+            const art = document.getElementById('inlineChannelArt');
+            art.hidden = true;
+            const image = art.querySelector('img');
+            image.hidden = true;
+            image.removeAttribute('src');
             video.pause();
             video.removeAttribute('src');
             video.load();
@@ -15036,7 +15092,7 @@ if(success){
             const name = document.getElementById('inlinePlayerTitle').textContent;
             if (url) window.open(`${inlinePlayerBaseUrl()}/player?url=${encodeURIComponent(url)}&name=${encodeURIComponent(name)}`, '_blank');
         }
-        async function playInline(rawUrl, name) {
+        async function playInline(rawUrl, name, logo = '') {
             if (!rawUrl) { showStatus('该频道没有播放地址', 'error'); return; }
             const url = browserPlaybackUrl(rawUrl.replace(/\$\{replace\}/g, inlinePlayerBaseUrl()));
             const dialog = document.getElementById('inlinePlayer');
@@ -15044,12 +15100,17 @@ if(success){
             closeInlinePlayer();
             const session = inlinePlayerSession;
             dialog.dataset.url = url;
+            const art = document.getElementById('inlineChannelArt');
+            art.querySelector('span').textContent = name || '频道';
+            if (logo) art.querySelector('img').src = String(logo).replace(/\$\{replace\}/g, inlinePlayerBaseUrl());
+            art.hidden = false;
             document.getElementById('inlinePlayerTitle').textContent = name || '播放';
             inlinePlayerStatus('正在连接媒体…');
             dialog.showModal();
             try {
                 if (/\.flv(?:[?#]|$)/i.test(url)) {
                     await loadScriptOnce('player-assets/mpegts.js', () => window.mpegts);
+                    if (session !== inlinePlayerSession) return;
                     if (!mpegts.getFeatureList().mseLivePlayback) throw new Error('当前浏览器不支持 FLV 直播，请复制地址用播放器打开');
                     const engine = mpegts.createPlayer({ type: 'flv', isLive: true, url }, { enableWorker: false, lazyLoad: false });
                     engine.on(mpegts.Events.ERROR, (type, detail) => inlinePlayerStatus(`播放失败：${detail || type}，可尝试「新窗口打开」，或复制地址用播放器打开`, true));
@@ -15069,7 +15130,7 @@ if(success){
                     // 例外是本机静态媒体（公告短片 /assets/announcement.mp4 等）：必须走原生播放，
                     // 喂给 hls.js 只会得到 manifestParsingError（issue #119）。
                     // 转发地址的 u 参数里是原地址，结尾可能正好像 .mp4，不能按它判断：转发的一律是 HLS
-                    const looksDirectMedia = !forwarded && /\.(?:mp4|m4v|webm|mov|mp3|m4a|aac|ogg)(?:[?#]|$)/i.test(playUrl);
+                    const looksDirectMedia = picked.directAudio || !forwarded && /\.(?:mp4|m4v|webm|mov|mp3|m4a|aac|ogg)(?:[?#]|$)/i.test(playUrl);
                     const looksHls = forwarded || (!looksDirectMedia && (/\.m3u8(?:[?#]|$)/i.test(playUrl) || sameOrigin));
                     let hlsReady = false;
                     if (looksHls) {
@@ -15107,7 +15168,7 @@ if(success){
         function playInlineById(channelId) {
             for (const group of (myPlaylistOriginalData || [])) {
                 const found = (group.channels || []).find(ch => ch.id === channelId);
-                if (found) { playInline(found.url, found.name); return; }
+                if (found) { playInline(found.url, found.name, found.logo); return; }
             }
             showStatus('频道未找到', 'error');
         }
@@ -15115,10 +15176,29 @@ if(success){
             const dialog = document.getElementById('inlinePlayer');
             const video = document.getElementById('inlinePlayerVideo');
             if (!dialog || !video) return;
-            dialog.addEventListener('close', closeInlinePlayer);            // Esc 关闭时也要释放播放器
+            const art = document.getElementById('inlineChannelArt');
+            const image = art.querySelector('img');
+            image.addEventListener('load', () => { image.hidden = !image.naturalWidth; });
+            image.addEventListener('error', () => { image.hidden = true; });
+            function updateChannelArt() {
+                if (dialog.open && video.readyState >= video.HAVE_CURRENT_DATA) art.hidden = video.videoWidth > 0;
+            }
+            video.addEventListener('loadeddata', updateChannelArt);
+            video.addEventListener('resize', updateChannelArt);
+            dialog.addEventListener('close', () => { if (!dialog.open) closeInlinePlayer(); });            // Esc 关闭时也要释放播放器
             dialog.addEventListener('click', e => { if (e.target === dialog) closeInlinePlayer(); }); // 点遮罩关闭
             video.addEventListener('playing', () => inlinePlayerStatus(''));
-            video.addEventListener('error', () => { if (!inlinePlayerCleanup) inlinePlayerStatus(inlineForwardReason ? `播放失败：${inlineForwardReason}` : '播放失败，可尝试「新窗口打开」，或复制地址用播放器打开', true); });
+            video.addEventListener('error', async () => {
+                if (!dialog.open || inlinePlayerCleanup || !video.error) return;
+                const session = inlinePlayerSession;
+                const backup = await radioBackupUrl(dialog.dataset.url);
+                if (session !== inlinePlayerSession || !dialog.open) return;
+                if (backup) {
+                    await playInline(backup, document.getElementById('inlinePlayerTitle').textContent, image.getAttribute('src') || '');
+                    return;
+                }
+                inlinePlayerStatus(inlineForwardReason ? `播放失败：${inlineForwardReason}` : '播放失败，可尝试「新窗口打开」，或复制地址用播放器打开', true);
+            });
         });
 
         // 页面加载时初始化
@@ -15134,6 +15214,10 @@ if(success){
         </div>
         <div class="inline-player-frame">
             <video id="inlinePlayerVideo" controls playsinline></video>
+            <div id="inlineChannelArt" class="inline-channel-art" aria-hidden="true" hidden>
+                <img alt="" hidden>
+                <span></span>
+            </div>
         </div>
         <p id="inlinePlayerStatus" class="inline-player-status"></p>
     </dialog>

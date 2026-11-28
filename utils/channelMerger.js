@@ -21,7 +21,7 @@ function dedupeAllChannels(allChannels) {
     const seen = new Map()
     const kept = []
     for (const ch of group.dataList) {
-      const urlKey = ch.url || ch.playURL || (ch.pID != null ? `migu:${ch.pID}` : '')
+      const urlKey = ch.url || ch.playURL || (ch.radio && ch.deferredRef ? 'radio-ref:' + ch.deferredRef : '') || (ch.pID != null ? `migu:${ch.pID}` : '')
       const key = `${(ch.name || '').trim().toLowerCase()} ${urlKey}`
       const prev = seen.get(key)
       if (prev) {

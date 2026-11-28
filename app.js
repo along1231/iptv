@@ -1256,9 +1256,12 @@ async function handleRequest(req, res) {
   const ordinaryRadio = routePath.match(/^(\/(?:[^/]+\/[^/]+\/)?)(radio-[\w-]+)$/)
   if (ordinaryRadio) {
     const owner = resolverFor(ordinaryRadio[2])
-    if (owner?.category === 'radio' && getModuleConfig(owner.id).useProxy === true) {
-      const ref = ordinaryRadio[2]
-      res.writeHead(302, { Location: accessPrefix + ordinaryRadio[1] + 'proxy/' + ref + '.' + owner.radioExtension(ref),
+    const ref = ordinaryRadio[2]
+    const useProxy = owner?.category === 'radio' && getModuleConfig(owner.id).useProxy === true
+    if (useProxy || owner?.backupRef?.(ref)) {
+      const extension = owner.radioExtension(ref)
+      const mode = useProxy ? 'proxy/' : 'relay/'
+      res.writeHead(302, { Location: accessPrefix + ordinaryRadio[1] + mode + ref + (extension ? '.' + extension : ''),
         'Cache-Control': 'no-store' })
       res.end()
       return

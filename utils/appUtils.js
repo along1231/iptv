@@ -168,7 +168,7 @@ function radioModeUrl(channel, mode) {
   const builtinRef = local?.[1]
   if (builtinRef) {
     const extension = resolverFor(builtinRef)?.radioExtension?.(builtinRef)
-    if (extension) return base + builtinRef + '.' + extension
+    if (typeof extension === 'string') return base + builtinRef + (extension ? '.' + extension : '')
   }
   const proxyId = channel.url.match(/^\$\{replace\}\/(?:proxy|relay)\/cp-([0-9a-f]{16})\.m3u8$/)?.[1]
   for (const sourceId of channel.sourceIds || []) {

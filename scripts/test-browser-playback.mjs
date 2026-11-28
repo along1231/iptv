@@ -24,6 +24,7 @@ const cases = [
   ['FLV', `${origin}/live/stream.flv`, `${origin}/live/stream.flv`],
   ['外部源', 'https://external.test/608807420', 'https://external.test/608807420'],
   ['不同端口', 'http://iptv.test:1906/608807420', 'http://iptv.test:1906/608807420'],
+  ['目录广播带账号前缀', origin + '/pass/user/token/relay/radio-rb-cn-0123456789abcdef.mp3', origin + '/pass/user/token/proxy/radio-rb-cn-0123456789abcdef'],
   ['空地址', null, null],
   ['无效地址', 'http://[invalid', 'http://[invalid'],
 ]

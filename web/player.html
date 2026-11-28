@@ -241,6 +241,11 @@
             try {
                 const url = new URL(rawUrl, pageUrl);
                 if (url.origin !== new URL(pageUrl).origin) return rawUrl;
+                const directory = url.pathname.match(/^(.*?\/)(?:(?:relay|proxy)\/)?(radio-rb-(?:cn|hk|mo|tw)-[a-f0-9]{16})(?:\.\w+)?$/);
+                if (directory) {
+                    url.pathname = directory[1] + 'proxy/' + directory[2];
+                    return url.href;
+                }
                 const radio = url.pathname.match(/^(.*?\/)(?:(?:relay|proxy)\/)?(radio-[a-z0-9_-]+)(?:\.m3u8)?$/);
                 if (radio) {
                     url.pathname = radio[1] + radio[2] + (radio[2].startsWith('radio-ner-') ? '.aac' : '.mp3');
@@ -268,7 +273,28 @@
                 return `${page.origin}${page.pathname.replace(/\/[^/]+$/, '')}/proxy/web.m3u8?u=${encodeURIComponent(rawUrl)}`;
             } catch { return ''; }
         }
+        async function radioBackupUrl(rawUrl) {
+            try {
+                const url = new URL(rawUrl, location.href);
+                if (url.origin !== location.origin || !/\/radio-(?!rb-)[\w-]+\.(mp3|aac)$/.test(url.pathname)) return '';
+                const response = await fetch(url, { method: 'HEAD', cache: 'no-store', signal: AbortSignal.timeout(5000) });
+                const ref = response.headers.get('X-Radio-Backup');
+                if (response.ok && /^radio-rb-(cn|hk|mo|tw)-[a-f0-9]{16}$/.test(ref)) return new URL('proxy/' + ref, url).href;
+            } catch {}
+            return '';
+        }
         async function pickWebPlayback(rawUrl, pageUrl = window.location.href) {
+            // A directory frequency can switch between HLS and continuous audio on fallback.
+            const url = String(rawUrl).includes('/proxy/radio-rb-') ? new URL(rawUrl, pageUrl) : null;
+            if (url?.origin === new URL(pageUrl).origin && /\/proxy\/radio-rb-(?:cn|hk|mo|tw)-[a-f0-9]{16}$/.test(url.pathname)) {
+                const probe = await fetch(rawUrl, { cache: 'no-store' });
+                try {
+                    if (!probe.ok) throw new Error('广播线路暂时不可用 (HTTP ' + probe.status + ')');
+                    return { url: rawUrl, reason: '', directAudio: !/mpegurl/i.test(probe.headers.get('content-type') || '') };
+                } finally {
+                    await probe.body?.cancel();
+                }
+            }
             const forward = webForwardUrl(rawUrl, pageUrl);
             if (!forward) return { url: rawUrl, reason: '' };
             try {
@@ -302,7 +328,7 @@
                 // 本机静态媒体（公告短片 /assets/announcement.mp4 等）不是直播流：走原生播放并放开进度条，
                 // 按同源规则交给 hls.js 只会 manifestParsingError（issue #119）。
                 // 转发地址的 u 参数里是原地址，结尾可能正好像 .mp4，不能按它判断：转发的一律是 HLS
-                const isDirectMedia = !forwarded && /\.(?:mp4|m4v|webm|mov|mp3|m4a|aac|ogg)(?:[?#]|$)/i.test(playUrl);
+                const isDirectMedia = picked.directAudio || !forwarded && /\.(?:mp4|m4v|webm|mov|mp3|m4a|aac|ogg)(?:[?#]|$)/i.test(playUrl);
                 const videoType = isFlv ? 'flv' : (forwarded || (!isDirectMedia && (playUrl.toLowerCase().includes('.m3u8') || sameOriginStream))) ? 'hls' : 'auto';
 
                 const dp = new DPlayer({
@@ -399,7 +425,14 @@
                 });
                 
                 // 播放错误处理
-                dp.on('error', function () {
+                dp.on('error', async function () {
+                    const backup = await radioBackupUrl(videoUrl);
+                    if (backup) {
+                        const page = new URL(location.href);
+                        page.searchParams.set('url', backup);
+                        location.replace(page.href);
+                        return;
+                    }
                     showError(picked.reason ? '❌ 播放失败：' + picked.reason : '❌ 播放失败：该频道可能需要复制地址用播放器打开');
                 });
                 

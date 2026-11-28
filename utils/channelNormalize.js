@@ -46,7 +46,7 @@ const T2S = {
   '時': '时', '間': '间', '實': '实', '現': '现', '當': '当', '發': '发', '愛': '爱', '歡': '欢',
   '兩': '两', '個': '个', '靈': '灵', '嶺': '岭', '輪': '轮', '轉': '转', '遊': '游', '橋': '桥',
 }
-function toSimplified(s) {
+export function toSimplified(s) {
   let out = ''
   for (const ch of s) out += (T2S[ch] || ch)
   return out

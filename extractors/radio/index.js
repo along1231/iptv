@@ -1,5 +1,7 @@
 import { readFileSync } from 'node:fs'
-import { getModuleConfig } from '../../utils/extractorManager.js'
+import { regionDirectory } from './browser.js'
+import { mainlandRegions } from './provinces.js'
+import { getExtractorManager, getModuleConfig } from '../../utils/extractorManager.js'
 import { audio, closeAudio, fetchRadioMedia, programmes, stream } from './runtime.js'
 
 const readJson = file => JSON.parse(readFileSync(new URL(file, import.meta.url), 'utf8'))
@@ -81,4 +83,59 @@ function regionalModule(region, slug) {
   }
 }
 
-export default Object.entries(regions).map(([region, slug]) => regionalModule(region, slug))
+const allRegions = { ...regions, ...mainlandRegions }
+function radioRegion(region, slug, loadCatalog) {
+  const official = regions[region] && regionalModule(region, slug)
+  if (region === '韩国') return official
+  const code = ({ 香港: 'HK', 澳门: 'MO', 台湾: 'TW' })[region] || 'CN'
+  const directory = regionDirectory('radio-' + slug, code, region, id => getExtractorManager().cachedGroups(id), loadCatalog)
+  if (!official) return { ...directory, directoryCode: code }
+  const isDirectory = ref => ref.startsWith('radio-rb-')
+  return {
+    ...official, catalogVersion: directory.catalogVersion, directoryCode: code, hasOfficialRadio: true,
+    description: region + '广播，官方线路优先，同台备用线路自动加入。',
+    backupRef(ref) {
+      if (!official.claimsRef(ref) || !getExtractorManager().isModuleEnabled(official)) return ''
+      return directory.backupRef(ref)
+    },
+    async handleLocalRequest(request) {
+      const response = await official.handleLocalRequest(request)
+      if (request.method === 'HEAD' && response?.headers) {
+        const ref = request.path.split('/').at(-1).replace(/\.(?:mp3|aac)$/, '')
+        const backup = this.backupRef(ref)
+        if (backup) response.headers['X-Radio-Backup'] = backup
+      }
+      return response
+    },
+    async fetch(config = {}) {
+      const result = await official.fetch()
+      let extra
+      try {
+        extra = (await directory.fetch(config)).groups[0].dataList
+      } catch (error) {
+        extra = getExtractorManager().cachedGroups(official.id)
+          .flatMap(group => group.dataList.filter(ch => isDirectory(ch.deferredRef)))
+        result.meta.warnings.push('备用目录刷新失败：' + error.message)
+      }
+      result.groups[0].dataList = [...result.groups[0].dataList, ...extra]
+      return result
+    },
+    claimsCachedRef: ref => official.claimsRef(ref) || directory.claimsCachedRef(ref),
+    claimsRef: ref => official.claimsRef(ref) || directory.claimsRef(ref),
+    resolve(ref, ctx = {}) {
+      if (isDirectory(ref)) {
+        if (!getExtractorManager().isModuleEnabled(official))
+          return { url: '', status: 404, desc: '该地区广播未启用' }
+        return directory.resolve(ref, ctx)
+      }
+      return official.resolve(ref, ctx)
+    },
+    radioExtension: ref => isDirectory(ref) ? directory.radioExtension(ref) : official.radioExtension(ref),
+    fetchProxyMedia: (ref, ...args) => isDirectory(ref) ? directory.fetchProxyMedia(ref, ...args) : official.fetchProxyMedia(ref, ...args),
+  }
+}
+
+export function createRadioModules(loadCatalog) {
+  return Object.entries(allRegions).map(([region, slug]) => radioRegion(region, slug, loadCatalog))
+}
+export default createRadioModules()

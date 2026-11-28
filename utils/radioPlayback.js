@@ -21,7 +21,10 @@ export function customRadioFetch(source) {
 // 避免为判断格式下载整段直播，或在重连时丢掉开头的音频帧。
 async function openMedia(url, options, fetchMedia) {
   const response = await fetchMedia(url, options)
-  if (!response.ok || !response.body) throw Error('广播上游不可用')
+  if (!response.ok || !response.body) {
+    await response.body?.cancel()
+    throw Error('广播上游不可用')
+  }
   const reader = response.body.getReader()
   const chunks = []
   let size = 0
@@ -57,7 +60,7 @@ async function openMedia(url, options, fetchMedia) {
 }
 
 // 调用方已通过配置取到固定的频道或模块，播放器不能指定回源 URL。
-export async function serveRadioMode(req, res, { ref, module, source, mode, extension, config = {} }) {
+export async function serveRadioMode(req, res, { ref, module, source, mode, extension, config = {}, isBackup = false }) {
   const method = req.method
   const headers = { 'Cache-Control': 'no-store' }
   if (method === 'HEAD' || method === 'OPTIONS') {
@@ -70,8 +73,9 @@ export async function serveRadioMode(req, res, { ref, module, source, mode, exte
   res.once('close', stop)
   let timer
   try {
-    if (module?.claimsLocalPath('/' + ref)) {
+    if (module?.claimsLocalPath?.('/' + ref)) {
       const local = await module.handleLocalRequest({ path: '/' + ref, method, config })
+      if (local?.status === 502) throw Error('广播音频未能起播')
       return await sendLocalMediaResponse(res, method, local)
     }
     const url = source?.url || (await module.resolve(ref, { config })).url
@@ -96,7 +100,7 @@ export async function serveRadioMode(req, res, { ref, module, source, mode, exte
       if (!media.text) throw Error('广播子清单无效')
     }
     let text = rewriteManifest(media.text, media.url)
-    const forceProxy = config.useProxy || source?.requireProxy || (source?.useProxy && outboundProxyUrl())
+    const forceProxy = isBackup || config.useProxy || source?.requireProxy || (source?.useProxy && outboundProxyUrl())
     if (mode === 'proxy' || forceProxy) {
       text = toProxyManifest(text, ref, undefined, upstreamHeaders, undefined, undefined,
         mode === 'relay' ? '../proxy/' : '')
@@ -106,6 +110,12 @@ export async function serveRadioMode(req, res, { ref, module, source, mode, exte
       'Content-Type': types.m3u8, 'Content-Length': body.length }, body })
   } catch {
     if (!res.destroyed && !res.headersSent) {
+      const alternate = !isBackup && module?.backupRef?.(ref)
+      if (alternate) {
+        clearTimeout(timer)
+        stop()
+        return await serveRadioMode(req, res, { ref: alternate, module, mode, config, isBackup: true })
+      }
       await sendLocalMediaResponse(res, method, { status: 502, headers, body: '暂时无法取得广播流' })
     }
   } finally {
