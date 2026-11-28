@@ -254,7 +254,7 @@ export function createProvider({ fetchImpl = fetch, now = Date.now, decode = dec
   }
 
   /** 线路全部同时查，详见 PICK_BUDGET_MS。选完后还没查完的继续跑，比选中的好就记进 later */
-  async function pickLine(id, paths, entryUrl, seeds) {
+  async function pickLine(id, paths, entryUrl, seeds, budgetMs) {
     const found = [...seeds]
     const watchers = new Set()
     const wake = () => watchers.forEach(check => check())
@@ -270,8 +270,9 @@ export function createProvider({ fetchImpl = fetch, now = Date.now, decode = dec
       watchers.add(check)
       check()
     })
-    await waitUntil(() => finished || found.some(stream => stream.height >= TARGET_HEIGHT), pickBudgetMs)
-    if (!found.length) await waitUntil(() => finished || found.length > 0, FIND_BUDGET_MS - pickBudgetMs)
+    const firstWait = Math.min(pickBudgetMs, budgetMs)
+    await waitUntil(() => finished || found.some(stream => stream.height >= TARGET_HEIGHT), firstWait)
+    if (!found.length) await waitUntil(() => finished || found.length > 0, budgetMs - firstWait)
     const chosen = bestOf(found)
     if (chosen) settled.then(() => {
       const top = bestOf(found)
@@ -282,20 +283,29 @@ export function createProvider({ fetchImpl = fetch, now = Date.now, decode = dec
 
   async function findStream(id, seeds) {
     const { hosts, prefix, suffix, home } = site || await loadSite()
-    const NO_LINES = '这场暂无可用线路（可能未开赛或已结束）'
-    // 几个域名是同一份页面，谁先回用谁：10-31 大陆探针上 Cloudflare 的两个域名偶发挂住 15 秒，按顺序等会拖慢首次起播
-    const { entryUrl, lines } = await Promise.any(hosts.map(async host => {
+    const noLines = 'JRKAN 入口页没有列出可识别的播放线路'
+    // 入口并行读取。优先查最先返回线路的入口，只有它取不到清单才使用其它已请求的入口。
+    async function readEntry(host) {
       const url = `${host}${prefix}${id}${suffix}`
       const paths = linePaths(await read(url, { referer: home }))
-      if (!paths.length) throw new Error(NO_LINES)
-      return { entryUrl: url, lines: paths }
-    })).catch(({ errors }) => {
-      if (errors.some(error => error.message === NO_LINES)) throw new Error(NO_LINES)
-      throw new Error(errors.some(error => error.status === 403) ? '入口页拒绝访问：这台机器的网络需要是大陆或香港出口' : '入口页打不开，请检查网络')
+      if (!paths.length) throw new Error(noLines)
+      return { host, url, paths }
+    }
+    const entries = new Map()
+    for (const host of new Set(hosts)) entries.set(host, readEntry(host))
+    let entry = await Promise.any(entries.values()).catch(({ errors }) => {
+      if (errors.every(error => error.status === 403)) throw new Error('JRKAN 播放入口均拒绝访问（HTTP 403）')
+      if (errors.some(error => error.message === noLines)) throw new Error(noLines)
+      throw new Error('未能读取 JRKAN 播放入口')
     })
-    const chosen = await pickLine(id, lines.slice(0, MAX_LINES), entryUrl, seeds)
-    if (chosen) return chosen
-    throw new Error(NO_LINES)
+    const deadline = Date.now() + FIND_BUDGET_MS
+    while (entry && Date.now() < deadline) {
+      entries.delete(entry.host)
+      const chosen = await pickLine(id, entry.paths.slice(0, MAX_LINES), entry.url, seeds, deadline - Date.now())
+      if (chosen) return chosen
+      entry = await Promise.any(entries.values()).catch(() => null)
+    }
+    throw new Error('JRKAN 已列出播放线路，但未取得可用的直播清单')
   }
 
   /** 手上已有的结果（当前线路、上次没赶上的）：还活着才算，已到目标分辨率就不用再查站点 */

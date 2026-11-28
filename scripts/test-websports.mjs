@@ -387,7 +387,7 @@ test('重挑时入口被拒，继续用手上的线路', async () => {
   clock += 5 * 60 * 1000
   const blocked = async (raw, options) => (raw.includes('/play/steam') ? new Response('', { status: 403 }) : site.fetchImpl(raw, options))
   const seeded = createProvider({ ...site, fetchImpl: blocked, now: () => clock })
-  await assert.rejects(seeded.resolve('825411'), /大陆或香港/, '手上没有结果时照常报错')
+  await assert.rejects(seeded.resolve('825411'), /HTTP 403/, '手上没有结果时照常报错')
   assert.equal((await provider.resolve('825411')).line, '/play/mgxl/?id=1&id2=')
 })
 
@@ -403,6 +403,27 @@ test('入口域名谁先回用谁，挂住的域名不拖慢起播', async () =>
   assert.equal(chosen?.line, '/play/mgxl/?id=1&id2=')
 })
 
+test('最快的入口能列出线路但没有清单，继续使用另一个入口的相对线路地址', async () => {
+  const site = lineSite({ mgxl: 720 })
+  const siteConfig = async () => ({
+    homeUrls: ['https://dead.example.com/'],
+    playHosts: ['http://empty.example.com', 'http://open.example.com'],
+  })
+  const fetchImpl = async (raw, options) => {
+    const url = new URL(raw)
+    if (url.hostname === 'empty.example.com') {
+      return new Response(url.pathname.startsWith('/play/steam') ? '<a data-play="/play/offline/"></a>' : '')
+    }
+    if (url.hostname === 'open.example.com' && url.pathname.startsWith('/play/steam')) {
+      await new Promise(resolve => setTimeout(resolve, 15))
+    }
+    return site.fetchImpl(raw, options)
+  }
+  const stream = await createProvider({ ...site, fetchImpl, siteConfig }).resolve('825411')
+  assert.equal(stream.line, '/play/mgxl/?id=1&id2=')
+  assert.equal(stream.height, 720)
+})
+
 test('流结束后重新解析，解不出时报清楚并短暂记住失败', async () => {
   const state = {}
   let clock = 1_000_000
@@ -411,16 +432,16 @@ test('流结束后重新解析，解不出时报清楚并短暂记住失败', as
   await provider.resolve('825411')
   state.streamEnded = true
   clock += 61 * 1000
-  await assert.rejects(provider.resolve('825411'), /暂无可用线路/)
+  await assert.rejects(provider.resolve('825411'), /未取得可用的直播清单/)
   const before = state.calls.length
-  await assert.rejects(provider.resolve('825411'), /暂无可用线路/)
+  await assert.rejects(provider.resolve('825411'), /未取得可用的直播清单/)
   assert.equal(state.calls.length, before, '失败冷却内不打上游')
 })
 
-test('入口全部 403 时说明要换网络，首页打不开时用兜底结构', async () => {
+test('入口全部 403 时报告上游拒绝访问，首页打不开时用兜底结构', async () => {
   const blocked = createProvider({ fetchImpl: mockSite({ allBlocked: true }), decode: decodeMock })
   await blocked.discover()
-  await assert.rejects(blocked.resolve('825411'), /大陆或香港/)
+  await assert.rejects(blocked.resolve('825411'), /HTTP 403/)
 
   const fetchImpl = async raw => new URL(raw).pathname === '/index.js' ? new Response(listScript) : new Response('', { status: 502 })
   assert.equal((await createProvider({ fetchImpl, now: beforeMatches }).discover()).length, 2)
@@ -442,5 +463,6 @@ test('模块登记：默认关闭、频道走清单中继，resolve 出错不抛
   assert.deepEqual([played.url, played.manifestText, played.manifestUrl], [stream, liveManifest, stream])
   const failed = await extractor.resolve('websports-825411', { fetchImpl: mockSite({ allBlocked: true }), decode: decodeMock })
   assert.equal(failed.url, '')
-  assert.match(failed.desc, /大陆或香港/)
+  assert.equal(failed.status, 503)
+  assert.match(failed.desc, /HTTP 403/)
 })

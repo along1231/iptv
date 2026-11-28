@@ -39,7 +39,7 @@ export default {
     try {
       const stream = await providerFor(ctx).resolve(ref.slice(PREFIX.length))
       return { url: stream.url, desc: stream.line, manifestText: stream.text, manifestUrl: stream.manifestUrl }
-    } catch (error) { return { url: '', desc: error.message } }
+    } catch (error) { return { url: '', status: 503, desc: error.message } }
   },
   clearResolveCache() { defaultProvider = createProvider(); providers = new WeakMap() },
 }
