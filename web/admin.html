@@ -3174,12 +3174,15 @@
         .source-section-head { margin-bottom: 22px; }
         .source-section-hint { max-width: 920px; margin-top: 0; color: var(--ui-text-secondary); font-size: 13px; line-height: 1.8; }
         .source-category-list { gap: 0; }
+        #radioList .extractor-category-bar { flex-wrap: nowrap; overflow-x: auto; }
+        #radioList .extractor-category-btn { flex: none; white-space: nowrap; }
         .source-category-head { gap: 9px; margin-bottom: 18px; padding-bottom: 15px; border-bottom: 1px solid var(--ui-line); }
         .source-category-desc { color: var(--ui-muted); font-size: 13px; line-height: 1.8; }
 
         /* 开关筛选为辅助控件，模块分类用深色选中态建立清晰层级。 */
         .extractor-filter { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 22px; }
         .extractor-filter:empty { display: none; }
+        #radioFilter .source-section-hint { align-self: center; margin-inline-start: 6px; }
         .extractor-filter-btn {
             display: inline-flex;
             align-items: center;
@@ -3750,7 +3753,10 @@
         .inline-player-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 13px; }
         .inline-player-top strong { font-size: 16px; }
         .inline-player-tools { display: flex; gap: 8px; }
-        dialog.inline-player video { width: 100%; aspect-ratio: 16 / 9; display: block; border-radius: 14px; background: #000; }
+        /* 裁掉原生控制栏下方可能露出的 1px 视频底色。 */
+        .inline-player-frame { overflow: hidden; }
+        dialog.inline-player video { width: 100%; aspect-ratio: 16 / 9; display: block; margin-bottom: -1px; border-radius: 14px 14px 0 0; background: #000; }
+        dialog.inline-player video::-webkit-media-controls-enclosure { border-radius: 0; }
         .inline-player-status { min-height: 20px; margin: 11px 0 0; color: var(--ui-muted); font-size: 13px; }
         .inline-player-status.bad { color: var(--ui-danger); }
 
@@ -4839,9 +4845,6 @@
 
                 <div class="source-subpanel" id="sourceSub3" role="tabpanel">
                     <div class="source-section">
-                        <div class="source-section-head">
-                            <strong>广播地区</strong> <span class="source-section-hint" id="radioFrequencyCount"></span>
-                        </div>
                         <div id="radioNotice"></div>
                         <div class="extractor-filter" id="radioFilter"></div>
                         <div class="source-category-list" id="radioList"></div>
@@ -6010,7 +6013,9 @@
         // 抓取模块按分类切换（作者 10-06）：几类模块一次只显示一类，免得一路往下滑过别的分类；
         // 记在本机浏览器里，下次进来还停在上次看的那一类。
         let extractorCategory = 'account';
+        let radioCategory = 'radio-mainland';
         try {
+            radioCategory = localStorage.getItem('iptv-radio-category') || radioCategory;
             const saved = localStorage.getItem('iptv-extractor-category');
             if (saved) extractorCategory = saved;
         } catch (e) {
@@ -6049,11 +6054,13 @@
         }
 
         function setExtractorCategory(id, render = true) {
-            extractorCategory = String(id || 'account');
+            const radioOnly = selectedSourceTab === 3;
+            if (radioOnly) radioCategory = id;
+            else extractorCategory = String(id || 'account');
             extractorFilterHold.clear();
             extractorClosedRegions.clear();
             try {
-                localStorage.setItem('iptv-extractor-category', extractorCategory);
+                localStorage.setItem(radioOnly ? 'iptv-radio-category' : 'iptv-extractor-category', radioOnly ? radioCategory : extractorCategory);
             } catch (e) {
                 // 同上，不影响本次切换
             }
@@ -6088,6 +6095,7 @@
                          aria-pressed="${extractorFilter === value}" onclick="setExtractorFilter('${value}')">
                     ${label}<span class="extractor-filter-count">${count}</span>
                 </button>`).join('')}</div>
+                ${barId === 'radioFilter' ? `<span class="source-section-hint">${modules.reduce((sum, m) => sum + (m.enabled ? m.health?.channelCount || 0 : 0), 0)} 个内置频率</span>` : ''}
                 <button type="button" class="extractor-filter-btn extractor-bulk-btn" aria-haspopup="dialog"
                         title="一次勾选要保留的模块和内置源，统一保存" onclick="openExtractorBulk()">批量开关</button>` : '';
         }
@@ -6118,6 +6126,22 @@
             };
         }
 
+        function radioRegionSections(modules) {
+            const sections = {
+                mainland: { title: '中国大陆', items: [] },
+                hmt: { title: '港澳台', items: [] },
+                overseas: { title: '海外', items: [] },
+                other: { title: '待归类', items: [] },
+            };
+            for (const module of modules) {
+                const key = !module.region ? 'other' : ['香港', '澳门', '台湾'].includes(module.region)
+                    ? 'hmt' : module.regionIsArea ? 'mainland' : 'overseas';
+                sections[key].items.push(module);
+            }
+            return Object.entries(sections).filter(([, section]) => section.items.length)
+                .map(([key, section]) => ({ id: 'radio-' + key, ...section }));
+        }
+
         /**
          * 弹窗分节：分类的标题和顺序跟卡片区用同一份（extractorCategories），最后是「内置源」。
          * 分类没登记的模块收进「其他」——卡片区看不到它们，但「全不选」不能把它们漏掉。
@@ -6128,6 +6152,10 @@
         function extractorBulkSections(state) {
             const radioOnly = selectedSourceTab === 3;
             const modules = ((state && state.modules) || []).filter(m => (m.category === 'radio') === radioOnly);
+            const moduleItem = m => ({ kind: 'module', id: m.id, name: m.name || m.id });
+            if (radioOnly) return radioRegionSections(modules).map(section => ({
+                ...section, items: section.items.map(moduleItem),
+            }));
             const categories = extractorCategories();
             const known = new Set(categories.map(category => category.id));
             const categoryOf = m => m.county ? '__county'
@@ -6140,12 +6168,11 @@
                     id: category.id,
                     title: category.title,
                     items: modules.filter(m => categoryOf(m) === category.id)
-                        .map(m => ({ kind: 'module', id: m.id, name: m.name || m.id })),
+                        .map(moduleItem),
                 }))
                 .filter(section => section.items.length);
             // 内置单频道源的清单由远程配置下发，现在是空的（纬来体育改由精选频道里的固定地址提供）：
             // 空着就不列，免得多一个什么也不管的开关；以后清单里再加源会自动出现。
-            if (radioOnly) return sections;
             const builtInItems = (builtInConfig.sources || []).length
                 ? [{ kind: 'flag', id: 'enableBuiltInSources', name: '内置单频道源' }]
                 : [];
@@ -6569,7 +6596,8 @@
                 switchSourceTab(target?.category === 'radio' ? 3 : 1, false);
                 if (kind === 'module') {
                     // 先切到模块所在的分类，关掉详情后看到的就是它那张卡片
-                    if (target && target.category !== 'radio') setExtractorCategory(target.category || 'standard', false);
+                    if (target) setExtractorCategory(target.category === 'radio'
+                        ? radioRegionSections([target])[0].id : target.category || 'standard', false);
                     selectExtractorModule(moduleId);
                 }
                 return;
@@ -6640,8 +6668,6 @@
             for (const [id, items] of [['sourceTabExtractorCount', television], ['sourceTabRadioCount', radio]]) {
                 document.getElementById(id).textContent = `${items.filter(m => m.enabled).length}/${items.length}`;
             }
-            document.getElementById('radioFrequencyCount').textContent = radio.length
-                ? `${radio.reduce((sum, m) => sum + (m.enabled ? m.health?.channelCount || 0 : 0), 0)} 个内置频率` : '';
             const modules = radioOnly ? radio : television;
             renderAlerts();
             renderExtractorFilter(modules, radioOnly ? 'radioFilter' : 'extractorFilter');
@@ -6696,19 +6722,20 @@
             const visible = m => extractorFilter === 'all'
                 || (extractorFilter === 'on') === !!m.enabled
                 || extractorFilterHold.has(m.id);
-            const shown = modules.filter(visible);
 
             // 分类按钮：数量跟着上面的开关筛选走；某类里有模块抓取失败或凭证失效，按钮上挂红点
             const categoryOf = m => m.category || 'standard';
-            const present = categories.filter(category => modules.some(m => categoryOf(m) === category.id));
-            const active = present.find(category => category.id === extractorCategory) || present[0];
+            const present = radioOnly ? radioRegionSections(modules) : categories
+                .map(category => ({ ...category, items: modules.filter(m => categoryOf(m) === category.id) }))
+                .filter(category => category.items.length);
+            const active = present.find(category => category.id === (radioOnly ? radioCategory : extractorCategory)) || present[0];
             const needsAttention = m => {
                 const h = m.health || {};
                 return m.enabled && (!!h.credentialRejected || h.status === 'failed' || h.status === 'risk');
             };
             const categoryBar = present.map(category => {
-                const count = shown.filter(m => categoryOf(m) === category.id).length;
-                const alerting = modules.some(m => categoryOf(m) === category.id && needsAttention(m));
+                const count = category.items.filter(visible).length;
+                const alerting = category.items.some(needsAttention);
                 const on = category.id === active.id;
                 return `<button type="button" role="tab" class="extractor-category-btn${on ? ' active' : ''}" aria-selected="${on}"
                                 onclick="setExtractorCategory('${escapeHtml(category.id)}')">
@@ -6716,7 +6743,7 @@
                         ? '<span class="attention-dot" role="img" aria-label="有模块需要处理"></span>' : ''}
                 </button>`;
             }).join('');
-            const activeModules = shown.filter(m => categoryOf(m) === active.id);
+            const activeModules = active.items.filter(visible);
 
             // 免账号小节：模块按面板收（省级地区，或国际、直播中国这类专题；只有一个模块的也收，
             // 统一样式，以后加模块直接进来），不归面板的平铺在前。面板标题的数量和红点按整个地区算，不跟筛选走；
@@ -6753,8 +6780,9 @@
             };
 
             if (radioOnly) {
-                box.innerHTML = activeModules.length ? modulesHtml(activeModules)
-                    : '<div class="extractor-filter-empty">没有符合当前筛选条件的广播地区。</div>';
+                box.innerHTML = `<div class="extractor-category-bar" role="tablist" aria-label="广播地区分类">${categoryBar}</div>
+                    <section role="tabpanel" aria-label="${escapeHtml(active.title)}">${activeModules.length ? modulesHtml(activeModules)
+                        : '<div class="extractor-filter-empty">该地区没有符合当前筛选条件的广播模块。</div>'}</section>`;
                 renderExtractorDetail();
                 return;
             }
@@ -15104,7 +15132,9 @@ if(success){
                 <button class="btn btn-sm" onclick="closeInlinePlayer()">关闭</button>
             </div>
         </div>
-        <video id="inlinePlayerVideo" controls playsinline></video>
+        <div class="inline-player-frame">
+            <video id="inlinePlayerVideo" controls playsinline></video>
+        </div>
         <p id="inlinePlayerStatus" class="inline-player-status"></p>
     </dialog>
 </body>

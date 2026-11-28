@@ -40,7 +40,7 @@ function regionalModule(region, slug) {
     if (key && (key.startsWith('ner-') || stations[key].relay || file.endsWith('.mp3') || file.endsWith('.aac'))) return { key }
   }
   return {
-    id, name: group, category: 'radio', defaultEnabled: false, outputGroupName: group,
+    id, name: group, category: 'radio', region, defaultEnabled: false, outputGroupName: group,
     description: region + '地区官方广播，共 ' + entries.length + ' 个频率。',
     capabilities: { cache: 'disk', resolve: true, epg: Boolean(epg), catchup: false },
     catalogVersion: 1, defaultRefreshMinutes: 1440, refreshConfigurable: false,

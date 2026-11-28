@@ -28,7 +28,7 @@ const BULK_FUNCTIONS = [
   'toggleExtractorBulkItem', 'setExtractorBulkSection', 'setExtractorBulkAll', 'resetExtractorBulk',
   'syncExtractorBulkBase', 'applyExtractorBulk', 'extractorBulkBlocked',
 ]
-const SHARED_FUNCTIONS = ['escapeHtml', 'extractorCategories', 'applyExtractorResult', 'isBuiltInSubscription', 'builtInSubscriptionChannelCount']
+const SHARED_FUNCTIONS = ['escapeHtml', 'extractorCategories', 'radioRegionSections', 'applyExtractorResult', 'isBuiltInSubscription', 'builtInSubscriptionChannelCount']
 
 // 模块清单仿 getState()：分类齐全，海外两个默认关；gdtv 故意不带 category，应按免账号处理
 const MODULES = [
@@ -214,13 +214,17 @@ await check('快照与分节：缺省内置源视为开，分类顺序同卡片�
 
 await check('广播与电视页分别批量操作，只提交当前页的模块', async () => {
   const state = stateOf()
-  state.modules.push({ id: 'radio-hongkong', name: '香港广播', category: 'radio', enabled: true })
+  for (const [id, region, regionIsArea] of [['hongkong', '香港', true], ['guangdong', '广东', true], ['korea', '韩国', false]]) {
+    state.modules.push({ id: 'radio-' + id, name: region + '广播', category: 'radio', region, regionIsArea, enabled: true })
+  }
   const h = bulkHarness(state)
-  assert.ok(!h.context.extractorBulkSections(state).some(section => section.id === 'radio'))
+  assert.ok(!h.context.extractorBulkSections(state).flatMap(section => section.items).some(item => item.id.startsWith('radio-')))
   h.context.selectedSourceTab = 3
   h.context.openExtractorBulk()
-  assert.deepEqual(plain(h.context.extractorBulkSections(state)).map(section => section.id), ['radio'])
-  h.context.setExtractorBulkAll(false)
+  assert.deepEqual(plain(h.context.extractorBulkSections(state)).map(section => [section.title, section.items.map(i => i.id)]), [
+    ['中国大陆', ['radio-guangdong']], ['港澳台', ['radio-hongkong']], ['海外', ['radio-korea']],
+  ])
+  h.context.setExtractorBulkSection(h.section('radio-hmt').buttons[0], false)
   await h.context.applyExtractorBulk()
   assert.deepEqual(h.posts, [{ action: 'bulkToggle', modules: { 'radio-hongkong': false } }])
 })
