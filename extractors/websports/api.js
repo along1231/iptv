@@ -283,7 +283,7 @@ export function createProvider({ fetchImpl = fetch, now = Date.now, decode = dec
 
   async function findStream(id, seeds) {
     const { hosts, prefix, suffix, home } = site || await loadSite()
-    const noLines = 'JRKAN 入口页没有列出可识别的播放线路'
+    const noLines = '赛事网站入口页没有列出可识别的播放线路'
     // 入口并行读取。优先查最先返回线路的入口，只有它取不到清单才使用其它已请求的入口。
     async function readEntry(host) {
       const url = `${host}${prefix}${id}${suffix}`
@@ -294,9 +294,9 @@ export function createProvider({ fetchImpl = fetch, now = Date.now, decode = dec
     const entries = new Map()
     for (const host of new Set(hosts)) entries.set(host, readEntry(host))
     let entry = await Promise.any(entries.values()).catch(({ errors }) => {
-      if (errors.every(error => error.status === 403)) throw new Error('JRKAN 播放入口均拒绝访问（HTTP 403）')
+      if (errors.every(error => error.status === 403)) throw new Error('赛事网站播放入口均拒绝访问（HTTP 403）：这台机器的网络需要是大陆或香港出口')
       if (errors.some(error => error.message === noLines)) throw new Error(noLines)
-      throw new Error('未能读取 JRKAN 播放入口')
+      throw new Error('赛事网站播放入口打不开，请检查网络')
     })
     const deadline = Date.now() + FIND_BUDGET_MS
     while (entry && Date.now() < deadline) {
@@ -305,7 +305,7 @@ export function createProvider({ fetchImpl = fetch, now = Date.now, decode = dec
       if (chosen) return chosen
       entry = await Promise.any(entries.values()).catch(() => null)
     }
-    throw new Error('JRKAN 已列出播放线路，但未取得可用的直播清单')
+    throw new Error('赛事网站已列出播放线路，但未取得可用的直播清单')
   }
 
   /** 手上已有的结果（当前线路、上次没赶上的）：还活着才算，已到目标分辨率就不用再查站点 */
